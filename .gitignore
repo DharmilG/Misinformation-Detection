@@ -1,0 +1,50 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Local datasets and generated data
+data/raw/
+data/processed/
+data/evidence/
+!data/evidence/.gitkeep
+
+# Trained models and checkpoints
+models/*
+!models/README.md
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.pkl
+
+# Vector database and index files
+vector_store/
+chroma_db/
+faiss_index/
+
+# Notebook and experiment output
+.ipynb_checkpoints/
+mlruns/
+outputs/
+logs/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
