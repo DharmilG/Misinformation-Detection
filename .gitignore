@@ -48,3 +48,6 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+dataset/
+ooc_dataset.zip
