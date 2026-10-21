@@ -226,6 +226,10 @@ Apply `PIL.ImageOps.exif_transpose` before any resize or color conversion.
 - After transposition, the image's pixel dimensions reflect the visual orientation.
 - EXIF metadata is **not** carried into the request. This avoids leaking GPS, device, or timestamp data and keeps the request small.
 
+**Where the transposition actually happens.** The requirement is that an oriented photograph is encoded in its visual orientation. On the current stack, `transformers`' `CLIPImageProcessor` applies the EXIF orientation itself, so the requirement holds **even though this document's own transposition step is not implemented**. The behaviour is verified by a test that encodes an EXIF-tagged photograph and the same photograph transposed by hand, and asserts the two features are identical.
+
+The step is still specified here, for two reasons. It keeps the behaviour independent of the library version, and it is where the `EXIF_ROTATED` warning and the dimension bookkeeping belong. What the implementation must not do is apply the transposition **twice** - a double transpose would rotate the image back, which is worse than not transposing at all.
+
 ### 7.3 Color handling and ICC policy
 
 **ICC profiles are ignored for v1.** This is an explicit, documented limitation, not an oversight:
@@ -268,6 +272,31 @@ image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
 The 2048 px bound is a preview/processing bound, not a model input size. CLIP still receives its own 224 px resize and center crop.
 
+#### 7.4.1 The downscale is a no-op on the evaluation corpus
+
+The corpus in document 02 is delivered with its photographs **already resized to a shorter side of 256 px**, so every corpus image is smaller than 2048 px and this step leaves it unchanged. The step is still required, because **inference** operates on user uploads at original resolution.
+
+| Path | Chain |
+|---|---|
+| Training | 256 px → this step is a no-op → processor 256 → 224 |
+| Inference | Original resolution → this step → processor 2048 → 224 |
+
+Both paths end at the same 224×224 centre crop of the same relative field of view. They differ in the resampling chain and in the JPEG artefacts already present in the corpus images. The difference is **accepted and measured** in document 02 §8.1.2, and the measurement is part of the test suite.
+
+A test asserts that this step leaves a corpus image byte-identical, so the no-op property is verified rather than assumed.
+
+#### 7.4.2 The step is not observable in the embedding
+
+**Measured.** The 2048 px downscale turns out to be **almost invisible in the feature**: CLIP's processor resizes the shortest side to 224 px and centre-crops, and the *relative* crop region is the same whether or not the image was reduced first. A 3000×2000 image and the same image reduced to a 2048 px longest side produce the same embedding to within 1e-3.
+
+Two things follow, and both matter.
+
+| Consequence | Statement |
+|---|---|
+| The step is a **processing bound**, not a semantic one | Its purpose is to bound the work and the memory, not to change the result. The value of removing it is cost, and the cost of *adding* it is almost nil |
+| The corpus's pre-resize is a **small** difference | Document 02 §8.1.2's accepted skew is bounded by the same effect, and the measurement confirms it |
+
+This does not make the step optional. It makes it **unverifiable from the output alone**, so the test for it observes the image that reaches the processor rather than the vector that comes back. A test that only compared embeddings would pass whether the step existed or not, which is why it does not.
 ### 7.5 Content hash
 
 Compute a SHA-256 over the **normalized** pixels, not the uploaded file:
