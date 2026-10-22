@@ -1352,7 +1352,7 @@ src/inference/
 scripts/
 └── run_inference.py   # CLI entry point, orchestration only
 
-tests/
+tests/input_pipeline/
 ├── test_pipeline.py
 ├── test_result.py
 ├── test_registry.py

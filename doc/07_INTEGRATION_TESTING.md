@@ -129,7 +129,40 @@ The last two are what keep the suite and this document from drifting apart.
 | Gated modules | **Measured separately per module.** Each must individually meet **90% line coverage**. A combined 90% could conceal a poorly tested module |
 | Gated module set | Document 04's validation; Document 01's encoder contract; Document 02's label audit and manifest builder; Document 06's filters, lexical index, validation, eligibility and outcome computation; Document 05's comparison and rendering; Document 03's loader and safe loading |
 | Behavioural assertions | **Retained.** Coverage is not evidence of correctness. The outcome computation, the citation eligibility rule, the metadata validation, and the comparison matrix are covered by behavioural tests, not by line counts |
+### 2.6 The test layout
 
+The suite is laid out to mirror `src/`.
+
+> A test lives in the folder of the component it verifies, and its file name mirrors the module it tests.
+> `src/retrieval/filters.py` → `tests/retrieval/test_filters.py`
+
+The rule already holds inside the per-document module layouts — document 06 §47 lists `src/retrieval/filters.py` in its module block and `test_filters.py` in its test block, and this change gives the test block the matching folder heading. The folder makes the pairing explicit, and it resolves the collisions that a flat directory cannot: `test_pipeline.py` is both document 04's inference pipeline and document 02's extraction pipeline, and `test_dataset.py` is document 03's torch Dataset reader.
+
+| Folder | Component | Document | Owns |
+|---|---|---|---|
+| `tests/clip_model/` | `src/clip_model/` | Document 01, Document 03 | The encoder, the feature cache, the parity diagnostic, the golden vectors, the classifier |
+| `tests/datasets/` | `src/datasets/` | Document 02 | The corpus, its label gate, its manifests, its splits, the dataset-scale extraction |
+| `tests/input_pipeline/` | `src/input_pipeline/` | Document 04 | The validation, the preprocessing, the request schema, the status model |
+| `tests/retrieval/` | `src/retrieval/` | Document 06 §47 | The evidence corpus, ingestion, chunking, the index, lexical and dense retrieval, fusion, the filters, dedup |
+| `tests/rag/` | `src/rag/` | Document 06 §48 | The prompt, the assembly, the validation, the eligibility rule, the outcome |
+| `tests/reporting/` | `src/reporting/` | Document 05 | The report model, the comparison, the export |
+| `tests/spec/` | no component | Document 07 | The documentation, and the suite's own invariants |
+
+Two things stay flat at the top of `tests/`, because they are the harness rather than a component's tests:
+
+| File | Role |
+|---|---|
+| `tests/conftest.py` | The fixtures, the tier skips, the declared xfails, the result capture |
+| `tests/ids.py` | The case registry - `case()` and `known_gap()` |
+| `tests/docmap.py` | Resolving a document section reference |
+| `tests/run.py` | The command line |
+| `tests/fixtures/` | The shared synthetic artefacts - generated images, caption corpora, the golden baseline |
+
+`tests/spec/` deserves its note. Its tests belong to no component: they check the **documentation** and the **suite itself**. They are what stops the specification and the implementation from drifting apart, which is what makes the rest of the suite trustworthy — the frozen overview, the canonical owner sections, the case-id registry, and the traceability table below. They are not tests of the system, and they are not run separately; they are in the same command as everything else, because a check that is easy to forget is a check that does not happen.
+
+**Status.** The folders exist. The files are still flat in `tests/`, and the move is a separate change. The tables in §12.2 and §12.3 are keyed by **case id**, not by file path, so the layout does not change which requirement any case enforces.
+
+---
 ---
 
 ## 3. The evaluation harness invariants
@@ -168,18 +201,18 @@ These verify the boundaries between components, not the components themselves.
 
 | # | Interface | Test | Assertion |
 |---|---|---|---|
-| 1 | Document 04 → Document 01 | `test_pipeline.py` | An `InputRequest` produced by the input pipeline satisfies every invariant in Document 04 §9 |
-| 2 | Document 01 → Document 04 | `test_pipeline.py` | The `EmbeddingPair` fields the inference path reads - the two vectors, the token counts, and the truncation flag - are present and consistent |
-| 3 | Document 01 → Document 03 | `test_classifier.py` | The feature family recorded in the checkpoint's `inference` block reconstructs a feature vector of the length the first layer expects |
-| 4 | Document 03 → Document 04 | `test_checkpoint.py` | A loaded classifier returns a result whose label matches the recorded threshold, positive class, and class order |
-| 5 | Document 04 → Document 06 | `test_retriever.py` | The `AssessmentContext` carries the normalized caption, both image flags, the classifier result, and the interpretation string, and no other fields |
-| 6 | Document 06 → Document 05 | `test_reporting.py` | Every retrieved passage renders with its complete metadata, and every accepted citation resolves to a retrieved passage |
-| 7 | Document 06 → Document 05 | `test_reporting.py` | The assessment section's status equals the assessment's upstream status; the interface never re-classifies it |
-| 8 | Document 04 → Document 05 | `test_reporting.py` | The classifier section's status equals the classifier result's upstream status |
-| 9 | Document 05 → Document 05 | `test_reporting.py` | The comparison state matches Document 05 §8.2's exhaustive mapping for the given pair of directions |
-| 10 | Document 02 → Document 06 | `test_corpus_terms.py` | The corpus manifest hash recorded in the index metadata matches the current manifest |
-| 11 | Document 02 → Document 03 | `test_dataset.py` | The manifest's per-row image and caption hashes match the feature cache's per-row hashes |
-| 12 | Document 06 → Document 06 | `test_outcome.py` | The computed outcome satisfies the per-status invariants of Document 06 §30.2 for every status combination |
+| 1 | Document 04 → Document 01 | `tests/input_pipeline/test_pipeline.py` | An `InputRequest` produced by the input pipeline satisfies every invariant in Document 04 §9 |
+| 2 | Document 01 → Document 04 | `tests/input_pipeline/test_pipeline.py` | The `EmbeddingPair` fields the inference path reads - the two vectors, the token counts, and the truncation flag - are present and consistent |
+| 3 | Document 01 → Document 03 | `tests/clip_model/test_classifier.py` | The feature family recorded in the checkpoint's `inference` block reconstructs a feature vector of the length the first layer expects |
+| 4 | Document 03 → Document 04 | `tests/clip_model/test_checkpoint.py` | A loaded classifier returns a result whose label matches the recorded threshold, positive class, and class order |
+| 5 | Document 04 → Document 06 | `tests/retrieval/test_retriever.py` | The `AssessmentContext` carries the normalized caption, both image flags, the classifier result, and the interpretation string, and no other fields |
+| 6 | Document 06 → Document 05 | `tests/reporting/test_reporting.py` | Every retrieved passage renders with its complete metadata, and every accepted citation resolves to a retrieved passage |
+| 7 | Document 06 → Document 05 | `tests/reporting/test_reporting.py` | The assessment section's status equals the assessment's upstream status; the interface never re-classifies it |
+| 8 | Document 04 → Document 05 | `tests/reporting/test_reporting.py` | The classifier section's status equals the classifier result's upstream status |
+| 9 | Document 05 → Document 05 | `tests/reporting/test_reporting.py` | The comparison state matches Document 05 §8.2's exhaustive mapping for the given pair of directions |
+| 10 | Document 02 → Document 06 | `tests/retrieval/test_corpus_terms.py` | The corpus manifest hash recorded in the index metadata matches the current manifest |
+| 11 | Document 02 → Document 03 | `tests/clip_model/test_dataset.py` | The manifest's per-row image and caption hashes match the feature cache's per-row hashes |
+| 12 | Document 06 → Document 06 | `tests/rag/test_outcome.py` | The computed outcome satisfies the per-status invariants of Document 06 §30.2 for every status combination |
 
 ---
 
@@ -189,30 +222,30 @@ These verify the boundaries between components, not the components themselves.
 
 | # | Test | Assertion |
 |---|---|---|
-| 1 | `test_checkpoint.py` | The checkpoint loads through `load_checkpoint` with the real encoder present |
-| 2 | `test_checkpoint.py` | Every file's SHA-256 is verified **before** any file is deserialized |
-| 3 | `test_checkpoint.py` | A modified file raises `CheckpointIntegrityError` and the deserializer is never reached |
-| 4 | `test_checkpoint.py` | An archive whose hash differs from the published value raises `ArtifactTrustError` |
-| 5 | `test_checkpoint.py` | The state dict loads with `strict=True`; a missing or unexpected key raises |
-| 6 | `test_checkpoint.py` | `weights_only=True` is used, and an environment without the flag raises rather than falling back |
-| 7 | `test_compatibility.py` | A hard-requirement failure raises `CheckpointIncompatibleError` and the message states both the installed and the expected version |
-| 8 | `test_compatibility.py` | A declared-range failure warns, and escalates to an error under `strict_compatibility` |
-| 9 | `test_checkpoint.py` | The feature vector is reconstructed from the recorded family, and the dimension is asserted against the first layer |
-| 10 | `test_checkpoint.py` | Offline mode B loads from a populated cache with `local_files_only=True` and no network |
-| 11 | `test_checkpoint.py` | Offline mode C raises `EncoderUnavailableError` with the command to populate the cache |
-| 12 | `test_checkpoint.py` | Offline mode D raises `EncoderProvenanceError` when a cached encoder file's hash differs |
+| 1 | `tests/clip_model/test_checkpoint.py` | The checkpoint loads through `load_checkpoint` with the real encoder present |
+| 2 | `tests/clip_model/test_checkpoint.py` | Every file's SHA-256 is verified **before** any file is deserialized |
+| 3 | `tests/clip_model/test_checkpoint.py` | A modified file raises `CheckpointIntegrityError` and the deserializer is never reached |
+| 4 | `tests/clip_model/test_checkpoint.py` | An archive whose hash differs from the published value raises `ArtifactTrustError` |
+| 5 | `tests/clip_model/test_checkpoint.py` | The state dict loads with `strict=True`; a missing or unexpected key raises |
+| 6 | `tests/clip_model/test_checkpoint.py` | `weights_only=True` is used, and an environment without the flag raises rather than falling back |
+| 7 | `tests/clip_model/test_compatibility.py` | A hard-requirement failure raises `CheckpointIncompatibleError` and the message states both the installed and the expected version |
+| 8 | `tests/clip_model/test_compatibility.py` | A declared-range failure warns, and escalates to an error under `strict_compatibility` |
+| 9 | `tests/clip_model/test_checkpoint.py` | The feature vector is reconstructed from the recorded family, and the dimension is asserted against the first layer |
+| 10 | `tests/clip_model/test_checkpoint.py` | Offline mode B loads from a populated cache with `local_files_only=True` and no network |
+| 11 | `tests/clip_model/test_checkpoint.py` | Offline mode C raises `EncoderUnavailableError` with the command to populate the cache |
+| 12 | `tests/clip_model/test_checkpoint.py` | Offline mode D raises `EncoderProvenanceError` when a cached encoder file's hash differs |
 
 ### 6.2 Prediction
 
 | # | Test | Assertion |
 |---|---|---|
-| 1 | `test_pipeline.py` | A valid request produces `status == OK` with a label, a score, and a logit |
-| 2 | `test_pipeline.py` | The label is determined by thresholding the **uncalibrated** score against the recorded threshold |
-| 3 | `test_pipeline.py` | A checkpoint with no calibration artifact produces a label and a score, with `probability is None` and `calibration_status == ABSENT` |
-| 4 | `test_pipeline.py` | The label is identical with and without a calibration artifact |
-| 5 | `test_pipeline.py` | The same input twice yields an identical score, probability, and label, under a fixed environment |
-| 6 | `test_pipeline.py` | The cold request is measurably slower than the warm path, and the warm path does not reload the encoder |
-| 7 | `test_pipeline.py` | The registry is constructed exactly once across many requests |
+| 1 | `tests/input_pipeline/test_pipeline.py` | A valid request produces `status == OK` with a label, a score, and a logit |
+| 2 | `tests/input_pipeline/test_pipeline.py` | The label is determined by thresholding the **uncalibrated** score against the recorded threshold |
+| 3 | `tests/input_pipeline/test_pipeline.py` | A checkpoint with no calibration artifact produces a label and a score, with `probability is None` and `calibration_status == ABSENT` |
+| 4 | `tests/input_pipeline/test_pipeline.py` | The label is identical with and without a calibration artifact |
+| 5 | `tests/input_pipeline/test_pipeline.py` | The same input twice yields an identical score, probability, and label, under a fixed environment |
+| 6 | `tests/input_pipeline/test_pipeline.py` | The cold request is measurably slower than the warm path, and the warm path does not reload the encoder |
+| 7 | `tests/input_pipeline/test_pipeline.py` | The registry is constructed exactly once across many requests |
 
 ---
 
@@ -557,46 +590,46 @@ These are specified, and they have no test yet. Each one names the file its test
 
 | Contract | Document and section | Test file | Test | Status |
 |---|---|---|---|---|
-| Input validation rules and limits | Document 04 §6 | `test_input_pipeline.py` | Accepted, rejected, and over-limit inputs | PLANNED |
-| The request schema and its invariants | Document 04 §9 | `test_input_pipeline.py` | Field presence and invariant checks | PLANNED |
-| The status vocabulary and the no-fabrication rule | Document 04 §11 | `test_pipeline.py` | Every non-`OK` result has `None` values | PLANNED |
-| The three quantities and the score-only mode | Document 04 §14 | `test_pipeline.py` | Score, probability, and calibration status | PLANNED |
-| The decision rule and threshold source | Document 04 §14 | `test_pipeline.py` | The threshold comes only from the checkpoint | PLANNED |
-| The degradation matrix | Document 04 §17 | `test_pipeline.py` | Every row of the matrix | PLANNED |
-| The crop-retention calculation | Document 04 §23 | `test_warnings.py` | The retained-area formula and the threshold | PLANNED |
-| The canonical explanation copy | Document 04 §24 | `test_pipeline.py` | The copy is used, and the fallback when absent | PLANNED |
-| The leakage grouping feasibility and the decision rules | Document 02 §10 | `test_leakage.py` | Component measurement and the selection rule | PLANNED |
-| The leakage audit and the exposure fields | Document 02 §11 | `test_leakage.py` | Every check in the audit | PLANNED |
-| The classifier families and the feature construction | Document 03 §4 | `test_classifier.py` | Dimensions and parameter counts | PLANNED |
-| The training protocol, the grid, and the seeding | Document 03 §7 | `test_training.py` | Determinism and the grid applicability | PLANNED |
-| The metric calculation rules | Document 03 §8 | `test_metrics.py` | Hand-computed values, confusion-matrix orientation | PLANNED |
-| The selection protocol and the tie-break | Document 03 §9 | `test_training.py` | The sealed split and the tie-break | PLANNED |
-| The operating threshold and the calibration | Document 03 §10, Document 03 §12 | `test_classifier.py` | Threshold selection and the calibration | PLANNED |
-| The checkpoint contents and the packaging gates | Document 03 §17, Document 03 §25 | `test_packaging.py` | Every gate | PLANNED |
-| The loading contract and safe loading | Document 03 §27 | `test_checkpoint.py` | Strict load, `weights_only`, hash-before-deserialize | PLANNED |
-| The verification procedure and its tolerance | Document 03 §28 | `test_checkpoint.py` | Class agreement and the score tolerance | PLANNED |
-| The corpus terms enforcement | Document 06 §6 | `test_corpus_terms.py` | Refusal without a terms record | PLANNED |
-| The ingestion safety controls | Document 06 §9 | `test_ingest_safety.py` | Redirects, size limits, private addresses | PLANNED |
-| The three text representations | Document 06 §10 | `test_chunking.py` | Display, lexical, and dense strings | PLANNED |
-| The chunk token budget | Document 06 §11 | `test_chunking.py` | The final embedded string fits the budget | PLANNED |
-| The BM25 index metadata and rebuild equivalence | Document 06 §14 | `test_lexical.py` | Identical rankings after a rebuild | PLANNED |
-| The filtering order and the absolute floor | Document 06 §19 | `test_filters.py` | The dense floor, the relative band, the caps | PLANNED |
-| The counter-evidence retention | Document 06 §19 | `test_filters.py` | A relevant contradicting passage is retained | PLANNED |
-| The empty-but-`OK` result | Document 06 §19 | `test_retriever.py` | Zero passages with status `OK` | PLANNED |
-| The eligibility rule | Document 06 §28 | `test_eligibility.py` | Each of the five conditions | PLANNED |
-| The citation and schema validation | Document 06 §29 | `test_validation.py` | Quote verification, URL scan, schema bounds | PLANNED |
-| The per-component outcome computation | Document 06 §30 | `test_outcome.py` | Every row of the outcome table | PLANNED |
-| The assessment per-status invariants | Document 06 §31 | `test_generation.py` | The invariants of the status table | PLANNED |
-| The prompt-injection defences | Document 06 §33 | `test_injection.py` | The fixture cases and the fake-generator variant | PLANNED |
-| The report model and the per-section status contract | Document 05 §2 | `test_reporting.py` | The payload table and the invariants | PLANNED |
-| The comparison matrix | Document 05 §8 | `test_comparison.py` | Every combination of directions | PLANNED |
-| The error and fallback matrix | Document 05 §10 | `test_reporting.py` | All eight conditions | PLANNED |
-| The escaping of untrusted text | Document 05 §16 | `test_reporting.py` | Markdown, unusual Unicode, control sequences | PLANNED |
-| The export contents and exclusions | Document 05 §15 | `test_reporting.py` | Exactly the enumerated fields | PLANNED |
-| The analysis fingerprint and the rerun rules | Document 05 §12 | `test_reporting.py` | Display change, new input, configuration change | PLANNED |
-| The end-to-end case manifest | Document 07 §8 | `test_e2e_cases.py` | The manifest schema and the case list | PLANNED |
-| The availability rates | Document 07 §9 | `test_rates.py` | The denominators | PLANNED |
-| The evaluation harness invariants | Document 07 §3 | `test_harness.py` | Each script refuses to run on a precondition failure | PLANNED |
+| Input validation rules and limits | Document 04 §6 | `tests/input_pipeline/test_input_pipeline.py` | Accepted, rejected, and over-limit inputs | PLANNED |
+| The request schema and its invariants | Document 04 §9 | `tests/input_pipeline/test_input_pipeline.py` | Field presence and invariant checks | PLANNED |
+| The status vocabulary and the no-fabrication rule | Document 04 §11 | `tests/input_pipeline/test_pipeline.py` | Every non-`OK` result has `None` values | PLANNED |
+| The three quantities and the score-only mode | Document 04 §14 | `tests/input_pipeline/test_pipeline.py` | Score, probability, and calibration status | PLANNED |
+| The decision rule and threshold source | Document 04 §14 | `tests/input_pipeline/test_pipeline.py` | The threshold comes only from the checkpoint | PLANNED |
+| The degradation matrix | Document 04 §17 | `tests/input_pipeline/test_pipeline.py` | Every row of the matrix | PLANNED |
+| The crop-retention calculation | Document 04 §23 | `tests/input_pipeline/test_warnings.py` | The retained-area formula and the threshold | PLANNED |
+| The canonical explanation copy | Document 04 §24 | `tests/input_pipeline/test_pipeline.py` | The copy is used, and the fallback when absent | PLANNED |
+| The leakage grouping feasibility and the decision rules | Document 02 §10 | `tests/datasets/test_leakage.py` | Component measurement and the selection rule | PLANNED |
+| The leakage audit and the exposure fields | Document 02 §11 | `tests/datasets/test_leakage.py` | Every check in the audit | PLANNED |
+| The classifier families and the feature construction | Document 03 §4 | `tests/clip_model/test_classifier.py` | Dimensions and parameter counts | PLANNED |
+| The training protocol, the grid, and the seeding | Document 03 §7 | `tests/clip_model/test_training.py` | Determinism and the grid applicability | PLANNED |
+| The metric calculation rules | Document 03 §8 | `tests/clip_model/test_metrics.py` | Hand-computed values, confusion-matrix orientation | PLANNED |
+| The selection protocol and the tie-break | Document 03 §9 | `tests/clip_model/test_training.py` | The sealed split and the tie-break | PLANNED |
+| The operating threshold and the calibration | Document 03 §10, Document 03 §12 | `tests/clip_model/test_classifier.py` | Threshold selection and the calibration | PLANNED |
+| The checkpoint contents and the packaging gates | Document 03 §17, Document 03 §25 | `tests/clip_model/test_packaging.py` | Every gate | PLANNED |
+| The loading contract and safe loading | Document 03 §27 | `tests/clip_model/test_checkpoint.py` | Strict load, `weights_only`, hash-before-deserialize | PLANNED |
+| The verification procedure and its tolerance | Document 03 §28 | `tests/clip_model/test_checkpoint.py` | Class agreement and the score tolerance | PLANNED |
+| The corpus terms enforcement | Document 06 §6 | `tests/retrieval/test_corpus_terms.py` | Refusal without a terms record | PLANNED |
+| The ingestion safety controls | Document 06 §9 | `tests/retrieval/test_ingest_safety.py` | Redirects, size limits, private addresses | PLANNED |
+| The three text representations | Document 06 §10 | `tests/retrieval/test_chunking.py` | Display, lexical, and dense strings | PLANNED |
+| The chunk token budget | Document 06 §11 | `tests/retrieval/test_chunking.py` | The final embedded string fits the budget | PLANNED |
+| The BM25 index metadata and rebuild equivalence | Document 06 §14 | `tests/retrieval/test_lexical.py` | Identical rankings after a rebuild | PLANNED |
+| The filtering order and the absolute floor | Document 06 §19 | `tests/retrieval/test_filters.py` | The dense floor, the relative band, the caps | PLANNED |
+| The counter-evidence retention | Document 06 §19 | `tests/retrieval/test_filters.py` | A relevant contradicting passage is retained | PLANNED |
+| The empty-but-`OK` result | Document 06 §19 | `tests/retrieval/test_retriever.py` | Zero passages with status `OK` | PLANNED |
+| The eligibility rule | Document 06 §28 | `tests/rag/test_eligibility.py` | Each of the five conditions | PLANNED |
+| The citation and schema validation | Document 06 §29 | `tests/rag/test_validation.py` | Quote verification, URL scan, schema bounds | PLANNED |
+| The per-component outcome computation | Document 06 §30 | `tests/rag/test_outcome.py` | Every row of the outcome table | PLANNED |
+| The assessment per-status invariants | Document 06 §31 | `tests/rag/test_generation.py` | The invariants of the status table | PLANNED |
+| The prompt-injection defences | Document 06 §33 | `tests/rag/test_injection.py` | The fixture cases and the fake-generator variant | PLANNED |
+| The report model and the per-section status contract | Document 05 §2 | `tests/reporting/test_reporting.py` | The payload table and the invariants | PLANNED |
+| The comparison matrix | Document 05 §8 | `tests/reporting/test_comparison.py` | Every combination of directions | PLANNED |
+| The error and fallback matrix | Document 05 §10 | `tests/reporting/test_reporting.py` | All eight conditions | PLANNED |
+| The escaping of untrusted text | Document 05 §16 | `tests/reporting/test_reporting.py` | Markdown, unusual Unicode, control sequences | PLANNED |
+| The export contents and exclusions | Document 05 §15 | `tests/reporting/test_reporting.py` | Exactly the enumerated fields | PLANNED |
+| The analysis fingerprint and the rerun rules | Document 05 §12 | `tests/reporting/test_reporting.py` | Display change, new input, configuration change | PLANNED |
+| The end-to-end case manifest | Document 07 §8 | `tests/spec/test_e2e_cases.py` | The manifest schema and the case list | PLANNED |
+| The availability rates | Document 07 §9 | `tests/spec/test_rates.py` | The denominators | PLANNED |
+| The evaluation harness invariants | Document 07 §3 | `tests/spec/test_harness.py` | Each script refuses to run on a precondition failure | PLANNED |
 | The clean-clone reproduction | Document 07 §13 | Manual, recorded | The procedure completes on a clean machine | PLANNED |
 ---
 
@@ -835,6 +868,7 @@ Every row starts at `NOT YET RUN`. No value may be entered that was not produced
 | UD-05 | The **documentation path** in Document `00` §11.1 (`docs/`, `notebooks/`) versus the repository (`doc/`, `notebools/`). Document `00` is unchanged | Recorded, not resolved | This document §13.4 |
 | UD-06 | The **root `README.md`** does not point at the documentation. Updating it is outside `doc/` | Recorded | This document §13.5 |
 | UD-07 | **Parity diagnostic scope.** The reference features cannot be compared on the image path, because the corpus photographs were re-encoded at 256 px while the reference used original-resolution files. The text path remains comparable, and a golden-vector regression is added as the primary offline check on both modalities | Resolved in this consolidation: the text path only, with the image path **excluded with its stated reason**, and the golden-vector regression covering the image path offline | Document 01 §12.8, §15.5 |
+| UD-08 | **The `tests/` layout.** Document 00 §11 lists a flat `tests/` sketch (`test_input_pipeline.py`, `test_clip_encoder.py`, and so on). The suite instead mirrors `src/` — one folder per component, one file per module — because the flat sketch cannot distinguish `test_pipeline.py` from `test_feature_pipeline.py`, and because 21 more test files are already planned | Resolved in this consolidation: the suite mirrors `src/`, the folder rule is stated in this document §2.6, and document 00 is left untouched because it is byte-frozen | This document §2.6, §12.3 |
 
 ---
 

@@ -1798,7 +1798,7 @@ src/clip_model/
 scripts/
 └── train_classifier.py  # Reproducible experiment entry point — orchestration only
 
-tests/
+tests/clip_model/
 ├── test_classifier.py
 ├── test_dataset.py
 ├── test_metrics.py
@@ -1822,7 +1822,7 @@ scripts/
 ├── generate_reference_fixture.py  # deterministic synthetic fixture generation
 └── verify_checkpoint.py     # the second-machine verification run
 
-tests/
+tests/clip_model/
 ├── test_checkpoint.py
 ├── test_packaging.py
 ├── test_compatibility.py
