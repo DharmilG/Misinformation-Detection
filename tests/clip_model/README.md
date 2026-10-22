@@ -7,14 +7,16 @@ Document 01 owns the encoder and the cache; document 03 owns the classifier.
 **Naming.** A file here mirrors a module there:
 `src/clip_model/clip_features.py` → `tests/clip_model/test_clip_features.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated. The encoder, the interface, the preprocessing, the
+cache, the parity diagnostic, and the golden vectors are here. The files
+listed below that have no entry yet are still planned. Document 07 §2 states
+the layout.
 
 | File | Clause |
 |---|---|
 | `test_encoder.py` | doc/01 §5.2, §6.2, §6.3, §7.2, §8.1, §8.2, §8.3, §14.2 |
 | `test_interface.py` | doc/01 §4.2, §4.3, §6.1, §7.1, §9.1, §13.1, §13.2 |
-| `test_preprocessing.py` | doc/04 §7.1, §7.2, §7.3, §7.4 |
+| `test_preprocessing.py` | doc/04 §7.1, §7.2, §7.3, §7.4, doc/02 §8.1.2 |
 | `test_cache.py` | doc/01 §11.1, §11.2, §11.3, §11.4, §11.5, §11.6, §11.7 |
 | `test_parity.py` | doc/01 §12.2, §12.4, §12.7, §12.8, §15.7 |
 | `test_golden.py` | doc/01 §14.3, §15.5 |

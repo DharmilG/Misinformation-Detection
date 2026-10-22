@@ -160,7 +160,7 @@ Two things stay flat at the top of `tests/`, because they are the harness rather
 
 `tests/spec/` deserves its note. Its tests belong to no component: they check the **documentation** and the **suite itself**. They are what stops the specification and the implementation from drifting apart, which is what makes the rest of the suite trustworthy — the frozen overview, the canonical owner sections, the case-id registry, and the traceability table below. They are not tests of the system, and they are not run separately; they are in the same command as everything else, because a check that is easy to forget is a check that does not happen.
 
-**Status.** The folders exist. The files are still flat in `tests/`, and the move is a separate change. The tables in §12.2 and §12.3 are keyed by **case id**, not by file path, so the layout does not change which requirement any case enforces.
+**Status.** The folders exist and the move is under way. `tests/clip_model/` is populated; the other six folders are still skeletons, and the test modules that belong to them are still flat in `tests/`. The tables in §12.2 and §12.3 are keyed by **case id**, not by file path, so the layout does not change which requirement any case enforces.
 
 ---
 ---

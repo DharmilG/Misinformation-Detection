@@ -27,14 +27,15 @@ if str(ROOT) not in sys.path:
 
 #: The modules that carry the registered cases.
 CASE_MODULES = [
-    "tests.test_clip_features",
-    "tests.test_preprocessing",
-    "tests.test_feature_cache",
+    "tests.clip_model.test_encoder",
+    "tests.clip_model.test_interface",
+    "tests.clip_model.test_preprocessing",
+    "tests.clip_model.test_cache",
+    "tests.clip_model.test_parity",
+    "tests.clip_model.test_golden",
     "tests.test_dataset",
     "tests.test_preprocess_skew",
     "tests.test_feature_pipeline",
-    "tests.test_parity",
-    "tests.test_golden",
     "tests.test_harness",
     "tests.test_docs",
 ]

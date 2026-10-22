@@ -13,7 +13,7 @@ mirrors the module it tests.
 
 | Folder | Component | Document | Status |
 |---|---|---|---|
-| `clip_model/` | `src/clip_model/` — the CLIP encoder, the feature cache, the parity diagnostic, the classifier | 01, 03 | skeleton |
+| `clip_model/` | `src/clip_model/` — the CLIP encoder, the feature cache, the parity diagnostic, the classifier | 01, 03 | populated |
 | `datasets/` | `src/datasets/` — the corpus, the manifests, the splits, the extraction | 02 | skeleton |
 | `input_pipeline/` | `src/input_pipeline/` — validation, preprocessing, the request schema | 04 | skeleton |
 | `retrieval/` | `src/retrieval/` — the evidence corpus, ingestion, chunking, retrieval | 06 §47 | skeleton |
@@ -27,9 +27,10 @@ and `run.py` are the harness itself and stay flat at the top.
 
 ## Status
 
-**The folders are a skeleton. Nothing has moved yet.** The test modules are
-still flat in `tests/`. The move is a separate change; document 07 §2 is the
-authoritative statement of the layout and of where each move is going.
+**The refactor is in progress.** `clip_model/` is populated; the other six
+folders are still skeletons, and the test modules that belong to them are
+still flat in `tests/`. Document 07 §2 is the authoritative statement of the
+layout and of where each move is going.
 
 ## Running the suite
 
