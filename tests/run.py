@@ -21,24 +21,19 @@ import os
 import sys
 from pathlib import Path
 
+try:
+    from _pytest.outcomes import Skipped
+except ImportError:  # pragma: no cover - pytest always provides it
+    class Skipped(BaseException):
+        """Stand-in for pytest's skip exception."""
+
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-#: The modules that carry the registered cases.
-CASE_MODULES = [
-    "tests.clip_model.test_encoder",
-    "tests.clip_model.test_interface",
-    "tests.clip_model.test_preprocessing",
-    "tests.clip_model.test_cache",
-    "tests.clip_model.test_parity",
-    "tests.clip_model.test_golden",
-    "tests.test_dataset",
-    "tests.test_preprocess_skew",
-    "tests.test_feature_pipeline",
-    "tests.test_harness",
-    "tests.test_docs",
-]
+#: The modules that carry the registered cases are found by walking the
+#: package, not listed here.  See :func:`_discover`.
 
 TIER_MARKERS = {
     "fast": "not slow and not data and not eval and not benchmark and not e2e",
@@ -72,13 +67,33 @@ def tier_expression(tier):
     return " and ".join("(%s)" % TIER_MARKERS[p] for p in parts)
 
 
+def _discover():
+    """Every case module in the suite.
+
+    Found by walking the package rather than listed by hand, so that moving a
+    test into a component folder is a ``git mv`` and nothing else.  pytest
+    collects from the same tree, so the two always agree on which files carry
+    the cases.
+    """
+    root = Path(__file__).resolve().parent
+    names = []
+    for path in sorted(root.rglob("test_*.py")):
+        relative = path.relative_to(root)
+        if "__pycache__" in relative.parts:
+            continue
+        names.append("tests." + ".".join(relative.with_suffix("").parts))
+    return names
+
+
 def _cases():
     """Every registered case, in module order."""
     found = []
-    for name in CASE_MODULES:
+    for name in _discover():
         try:
             module = importlib.import_module(name)
-        except Exception as exc:
+        except (Exception, Skipped) as exc:
+            # A module whose dependency is absent is skipped, not failed.
+            # pytest's own Skipped is a BaseException, so it is named here.
             print("could not import %s: %s" % (name, exc), file=sys.stderr)
             continue
         for attr in sorted(dir(module)):

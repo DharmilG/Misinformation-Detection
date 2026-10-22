@@ -577,7 +577,7 @@ The full report, with the clause and the requirement for every case, is `reports
 | The alpha flattening | Document 04 §7.3 | `preprocess.alpha_white` | slow | DECLARED GAP |
 | The downscale to 2048 px | Document 04 §7.4, Document 04 §7.4.1 | `preprocess.downscale_to_2048` (gap); `skew.downscale_is_noop_on_corpus` (implemented) | slow, data | MIXED |
 | The tier taxonomy | Document 07 §2.1 | `harness.tier_taxonomy_matches_doc`, `harness.tier_selection_is_composable` | fast | IMPLEMENTED |
-| The command set | Document 07 §2.2 | `harness.command_set_matches_doc`, `harness.filter_matches_the_case_id` | fast | IMPLEMENTED |
+| The command set | Document 07 §2.2 | `harness.command_set_matches_doc`, `harness.filter_matches_the_case_id`, `harness.discovery_finds_every_collected_module` | fast | IMPLEMENTED |
 | The marker discipline | Document 07 §2.3 | `harness.every_test_registered`, `harness.collection_clean` | fast | IMPLEMENTED |
 | The interface and boundary matrix | Document 07 §11 | `docs.canonical_owners_present` | fast | IMPLEMENTED |
 | This traceability table | Document 07 §12 | `harness.traceability_sections_resolve`, `harness.case_ids_unique` | fast | IMPLEMENTED |

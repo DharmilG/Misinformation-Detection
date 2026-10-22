@@ -188,3 +188,49 @@ def test_filter_matches_the_case_id():
     assert "clip.extract.long_caption_truncates" in result.stdout, (
         "the case list does not contain the truncation case"
     )
+
+
+@case(
+    "harness.discovery_finds_every_collected_module",
+    "F10",
+    "fast",
+    "doc/07 §2.2",
+    "The runner's module walk finds every module pytest would collect, so the case list cannot silently under-report.",
+)
+def test_discovery_finds_every_collected_module():
+    from tests.run import _discover
+
+    discovered = set(_discover())
+    assert discovered, "the walk found no case modules at all"
+
+    # pytest is asked what it *would* collect, not what this selection
+    # collected.  Asking the running session would make the check vacuous
+    # under a narrow selection, which is exactly when it should still hold.
+    # The empty marker expression overrides the fast-only default.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "--collect-only",
+            "-q",
+            "--color=no",
+            "-m",
+            "",
+        ],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout[-2000:]
+
+    collected = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if "::" not in line:
+            continue
+        path = line.split("::")[0]
+        collected.add(path.replace("/", ".").removesuffix(".py"))
+
+    missing = sorted(collected - discovered)
+    assert not missing, "the runner's walk misses: %s" % ", ".join(missing)
