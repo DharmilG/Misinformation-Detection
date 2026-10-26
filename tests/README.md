@@ -15,10 +15,10 @@ mirrors the module it tests.
 |---|---|---|---|
 | `clip_model/` | `src/clip_model/` — the CLIP encoder, the feature cache, the parity diagnostic, the classifier | 01, 03 | populated |
 | `datasets/` | `src/datasets/` — the corpus, the manifests, the splits, the extraction | 02 | populated |
-| `input_pipeline/` | `src/input_pipeline/` — validation, preprocessing, the request schema | 04 | skeleton |
-| `retrieval/` | `src/retrieval/` — the evidence corpus, ingestion, chunking, retrieval | 06 §47 | skeleton |
-| `rag/` | `src/rag/` — the prompt, the assessment, the eligibility rule, the outcome | 06 §48 | skeleton |
-| `reporting/` | `src/reporting/` — the report model, the comparison, the export | 05 | skeleton |
+| `input_pipeline/` | `src/input_pipeline/` — validation, preprocessing, the request schema | 04 | populated |
+| `retrieval/` | `src/retrieval/` — the evidence corpus, ingestion, chunking, retrieval | 06 §47 | populated |
+| `rag/` | `src/rag/` — the prompt, the assessment, the eligibility rule, the outcome | 06 §48 | populated |
+| `reporting/` | `src/reporting/` — the report model, the comparison, the export | 05 | populated |
 | `spec/` | no component — the documentation and the suite's own invariants | 07 | populated |
 
 `fixtures/` holds the shared synthetic artefacts — generated images, caption
@@ -27,10 +27,10 @@ and `run.py` are the harness itself and stay flat at the top.
 
 ## Status
 
-**The refactor is in progress.** `clip_model/`, `datasets/`, and `spec/` are
-populated; the remaining folders (`input_pipeline/`, `retrieval/`, `rag/`,
-`reporting/`) are skeletons awaiting their component test implementations.
-Document 07 §2 is the authoritative statement of the layout.
+**Complete.** All 7 component folders (`clip_model/`, `datasets/`, `input_pipeline/`,
+`retrieval/`, `rag/`, `reporting/`, and `spec/`) are fully populated with 311
+registered contract test cases across 54 test modules. Document 07 §2 is the
+authoritative statement of the layout.
 
 ## Running the suite
 
