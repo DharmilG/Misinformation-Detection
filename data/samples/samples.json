@@ -1,0 +1,16 @@
+[
+  {
+    "sample_id": "sample_a",
+    "label": "Sample A — Mismatched (synthetic)",
+    "description": "A synthetic test fixture. The caption describes a protest but the image shows a stadium event. This is a synthetic example created to exercise the mismatch code path.",
+    "image_filename": "sample_a.jpg",
+    "default_caption": "Protesters gather outside the parliament building demanding electoral reform on a rainy afternoon."
+  },
+  {
+    "sample_id": "sample_b",
+    "label": "Sample B — Matched (synthetic)",
+    "description": "A synthetic test fixture. The caption describes a crowd at a sporting event, consistent with the image content. Created to exercise the matched code path.",
+    "image_filename": "sample_b.jpg",
+    "default_caption": "A packed stadium crowd watches the championship match under bright floodlights."
+  }
+]
