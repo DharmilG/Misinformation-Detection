@@ -8,8 +8,9 @@ this component.
 **Naming.** A file here mirrors a module there:
 `src/rag/eligibility.py` → `tests/rag/test_eligibility.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated. All 8 contract test suites for Document 06 §48 (prompt construction,
+prompt assembly, schema and quote validation, evidence eligibility, outcome computation,
+result schemas, prompt injection defenses, and RAG evaluation) are implemented.
 
 | File | Clause |
 |---|---|

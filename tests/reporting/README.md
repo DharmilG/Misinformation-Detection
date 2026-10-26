@@ -6,12 +6,14 @@ of untrusted text, the export, and the analysis fingerprint. Document 05 owns
 this component.
 
 **Naming.** A file here mirrors a module there:
-`src/reporting/format_report.py` → `tests/reporting/test_format_report.py`.
+`src/reporting/report_model.py` → `tests/reporting/test_reporting.py`.
+`src/reporting/comparison.py` → `tests/reporting/test_comparison.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated. Both contract test suites for Document 05 (report model,
+status contract, error/fallback matrix, fingerprint, export, escaping, and comparison
+directions matrix) are implemented.
 
 | File | Clause |
 |---|---|
-| `test_reporting.py` | doc/05 §2, §10, §12, §15, §16 |
+| `test_reporting.py` | doc/05 §2, §10, §11, §12, §15, §16, §18 |
 | `test_comparison.py` | doc/05 §8 |

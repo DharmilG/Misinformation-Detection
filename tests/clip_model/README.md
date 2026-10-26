@@ -7,10 +7,11 @@ Document 01 owns the encoder and the cache; document 03 owns the classifier.
 **Naming.** A file here mirrors a module there:
 `src/clip_model/clip_features.py` → `tests/clip_model/test_clip_features.py`.
 
-**Status.** Populated. The encoder, the interface, the preprocessing, the
-cache, the parity diagnostic, and the golden vectors are here. The files
-listed below that have no entry yet are still planned. Document 07 §2 states
-the layout.
+**Status.** Populated. All 15 contract test suites for Document 01 and
+Document 03 (encoder, interface, preprocessing, cache, parity diagnostic,
+golden vectors, classifier architecture, dataset reader, metrics, calibration,
+training protocol, safe checkpoints, packaging gates, compatibility, and verification)
+are implemented.
 
 | File | Clause |
 |---|---|
