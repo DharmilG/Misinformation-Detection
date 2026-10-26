@@ -7,8 +7,9 @@ rule. Document 04 owns this component.
 **Naming.** A file here mirrors a module there:
 `src/input_pipeline/input_schema.py` → `tests/input_pipeline/test_input_schema.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated. All 6 contract test suites for Document 04 (input validation,
+inference pipeline flow, result objects and invariants, model registry singleton,
+crop-retention warnings, and canonical copy schema) are implemented.
 
 | File | Clause |
 |---|---|
