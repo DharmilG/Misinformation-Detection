@@ -15,8 +15,9 @@ suite trustworthy:
 - the tiers, the commands, and the traceability table in document 07 match
   what the suite actually does.
 
-**Status.** Populated for `test_docs.py` and `test_suite.py`.
-The remaining files listed below are planned. Document 07 §2 states the layout.
+**Status.** Populated. All 5 test modules for Document 07 (documentation, suite
+invariants, evaluation harness preconditions, end-to-end case manifest, and
+availability rates) are implemented.
 
 | File | Clause |
 |---|---|
