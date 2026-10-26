@@ -14,12 +14,12 @@ mirrors the module it tests.
 | Folder | Component | Document | Status |
 |---|---|---|---|
 | `clip_model/` | `src/clip_model/` — the CLIP encoder, the feature cache, the parity diagnostic, the classifier | 01, 03 | populated |
-| `datasets/` | `src/datasets/` — the corpus, the manifests, the splits, the extraction | 02 | skeleton |
+| `datasets/` | `src/datasets/` — the corpus, the manifests, the splits, the extraction | 02 | populated |
 | `input_pipeline/` | `src/input_pipeline/` — validation, preprocessing, the request schema | 04 | skeleton |
 | `retrieval/` | `src/retrieval/` — the evidence corpus, ingestion, chunking, retrieval | 06 §47 | skeleton |
 | `rag/` | `src/rag/` — the prompt, the assessment, the eligibility rule, the outcome | 06 §48 | skeleton |
 | `reporting/` | `src/reporting/` — the report model, the comparison, the export | 05 | skeleton |
-| `spec/` | no component — the documentation and the suite's own invariants | 07 | skeleton |
+| `spec/` | no component — the documentation and the suite's own invariants | 07 | populated |
 
 `fixtures/` holds the shared synthetic artefacts — generated images, caption
 corpora, and the golden-vector baseline. `conftest.py`, `ids.py`, `docmap.py`,
@@ -27,10 +27,10 @@ and `run.py` are the harness itself and stay flat at the top.
 
 ## Status
 
-**The refactor is in progress.** `clip_model/` is populated; the other six
-folders are still skeletons, and the test modules that belong to them are
-still flat in `tests/`. Document 07 §2 is the authoritative statement of the
-layout and of where each move is going.
+**The refactor is in progress.** `clip_model/`, `datasets/`, and `spec/` are
+populated; the remaining folders (`input_pipeline/`, `retrieval/`, `rag/`,
+`reporting/`) are skeletons awaiting their component test implementations.
+Document 07 §2 is the authoritative statement of the layout.
 
 ## Running the suite
 

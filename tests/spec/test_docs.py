@@ -14,7 +14,7 @@ import pytest
 from tests import docmap
 from tests.ids import case, known_gap
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 #: The SHA-256 of doc/00_PROJECT_OVERVIEW.md.  The overview is the single
 #: document that must never change.

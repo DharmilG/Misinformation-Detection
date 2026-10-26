@@ -108,7 +108,7 @@ The runner is a thin wrapper over `pytest`. It adds the tier and filter selectio
 | An `eval` test cannot tune and report on the same cases | The harness records which split it read and refuses to emit a test-set report from the development file |
 | A benchmark result records the candidate configuration and the selection rule | Enforced by the harness, and asserted in the benchmark output |
 | **Every collected test carries a registered id and a tier** | A test asserts it, so a test added without an id fails the suite |
-| **A full run produces zero collection errors** | A test asserts it, so an import-time failure anywhere in the tree is caught |
+| **A full run produces zero collection errors, and collects nothing outside `tests/`** | Two tests assert it: the suite is collected in full and must succeed, and every collected item must live under `tests/` |
 
 The last two are what keep the suite and this document from drifting apart.
 ### 2.4 Environment requirements
@@ -137,6 +137,8 @@ The suite is laid out to mirror `src/`.
 > `src/retrieval/filters.py` → `tests/retrieval/test_filters.py`
 
 The rule already holds inside the per-document module layouts — document 06 §47 lists `src/retrieval/filters.py` in its module block and `test_filters.py` in its test block, and this change gives the test block the matching folder heading. The folder makes the pairing explicit, and it resolves the collisions that a flat directory cannot: `test_pipeline.py` is both document 04's inference pipeline and document 02's extraction pipeline, and `test_dataset.py` is document 03's torch Dataset reader.
+
+The boundary holds in both directions. `pytest.ini` sets `testpaths = tests`, so a run reaches only the suite; and `src/` contains no file named `test_*.py`, so there is nothing beside the implementation to exclude from collection. A harness test asserts the second half — a stray script placed beside the implementation fails the run with a message naming it, rather than being quietly ignored.
 
 | Folder | Component | Document | Owns |
 |---|---|---|---|

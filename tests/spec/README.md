@@ -15,8 +15,8 @@ suite trustworthy:
 - the tiers, the commands, and the traceability table in document 07 match
   what the suite actually does.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated for `test_docs.py` and `test_suite.py`.
+The remaining files listed below are planned. Document 07 §2 states the layout.
 
 | File | Clause |
 |---|---|

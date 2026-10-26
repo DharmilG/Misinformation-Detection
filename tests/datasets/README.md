@@ -7,8 +7,8 @@ this component.
 **Naming.** A file here mirrors a module there:
 `src/datasets/manifests.py` → `tests/datasets/test_manifests.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated for `test_corpus.py`, `test_skew.py`, and `test_pipeline.py`.
+The remaining files listed below are planned. Document 07 §2 states the layout.
 
 | File | Clause |
 |---|---|

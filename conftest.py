@@ -1,17 +1,17 @@
 """Repository-root pytest configuration.
 
-This module is imported before test collection, so it is the only place that can
-influence *whether* a file is collected at all.  It handles three things:
+This module runs before test collection.  It does two things:
 
-1.  Making ``src/clip_model`` importable, so the feature-extraction scripts in
-    that directory can be imported by name.
-2.  Keeping the script-like files that live beside the implementation out of
-    collection.  They assert at import time and depend on artefacts that a
-    developer may not have generated, so collecting them turns a missing file
-    into a whole-suite collection error.  ``tests/test_harness.py`` asserts that
-    the exclusion list stays exactly this small and deliberate.
-3.  Materialising the sample artefacts the scripts expect, so those scripts run
-    rather than exiting with "sample not found".
+1.  Making ``src/clip_model`` importable, so the implementation modules in that
+    directory can be imported by bare name from ``tests/clip_model``.
+2.  Materialising the sample artefact the scripts in ``src/clip_model`` read, so
+    those scripts run rather than exiting with "sample not found".
+
+It deliberately excludes nothing.  ``pytest.ini`` sets ``testpaths = tests``, so
+a bare run reaches only the suite, and ``src/`` holds no file named
+``test_*.py`` for anything to trip over.  ``tests/spec/test_suite.py`` asserts that
+second half: a stray script beside the implementation fails the run with a
+message naming it, rather than being quietly ignored.
 """
 
 import io
@@ -25,18 +25,6 @@ SAMPLE_DIR = ROOT / "data" / "sample"
 
 if str(CLIP_DIR) not in sys.path:
     sys.path.insert(0, str(CLIP_DIR))
-
-#: Files beside the implementation that look like tests but are scripts.  They
-#: execute their assertions at import time and read artefacts that may not
-#: exist, so collecting them produces a collection error for the whole suite.
-#: Kept deliberately small; ``tests/test_harness.py`` asserts this list.
-SCRIPT_LIKE_MODULES = [
-    "src/clip_model/test_clip.py",
-    "src/clip_model/test_saved_features.py",
-]
-
-collect_ignore_glob = [str(p).replace("\\", "/") for p in SCRIPT_LIKE_MODULES]
-
 
 def _ensure_sample_image() -> Path:
     """Create ``data/sample/test_3.webp`` if it is not already there.

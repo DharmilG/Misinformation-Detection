@@ -15,7 +15,7 @@ import pytest
 from tests import docmap
 from tests.ids import case
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 @case(
@@ -126,19 +126,34 @@ def test_traceability_sections_resolve():
     "harness.collection_clean",
     "F10",
     "fast",
-    "doc/07 §2.3",
-    "A full collection produces no errors, and the script-like files beside the implementation are excluded deliberately.",
+    "doc/07 §2.3, §2.6",
+    "A full collection produces no errors, every collected item lives under tests/, and no file under src/ is named test_*.py.",
 )
 def test_collection_clean():
-    import conftest
+    strays = sorted(
+        str(path.relative_to(ROOT)).replace("\\", "/")
+        for path in (ROOT / "src").rglob("test_*.py")
+        if "__pycache__" not in path.parts
+    )
+    assert not strays, (
+        "these files sit beside the implementation but are named like tests; the "
+        "suite lives under tests/ and src/ must hold no test_*.py: %s"
+        % ", ".join(strays)
+    )
 
-    assert sorted(conftest.SCRIPT_LIKE_MODULES) == [
-        "src/clip_model/test_clip.py",
-        "src/clip_model/test_saved_features.py",
-    ], "the exclusion list changed; a new stray test file would now be collected"
-
+    # The empty marker expression overrides the fast-only default, so the path
+    # check sees every item rather than only the fast ones.
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-q", "--color=no"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "--collect-only",
+            "-q",
+            "--color=no",
+            "-m",
+            "",
+        ],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
@@ -149,6 +164,15 @@ def test_collection_clean():
     # contain the word "error" in a test name.
     assert "errors" not in output.lower().split("\n")[-1], (
         "collection reported an error:\n%s" % output[-2000:]
+    )
+    outside = sorted(
+        line.strip().replace("\\", "/")
+        for line in output.splitlines()
+        if "::" in line and not line.strip().replace("\\", "/").startswith("tests/")
+    )
+    assert not outside, (
+        "these items were collected from outside tests/; testpaths = tests is what "
+        "keeps the suite away from the implementation tree: %s" % ", ".join(outside)
     )
 
 
@@ -230,7 +254,7 @@ def test_discovery_finds_every_collected_module():
         if "::" not in line:
             continue
         path = line.split("::")[0]
-        collected.add(path.replace("/", ".").removesuffix(".py"))
+        collected.add(path.replace("\\", "/").replace("/", ".").removesuffix(".py"))
 
     missing = sorted(collected - discovered)
     assert not missing, "the runner's walk misses: %s" % ", ".join(missing)

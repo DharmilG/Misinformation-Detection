@@ -15,7 +15,7 @@ from tests.ids import case
 
 torch = pytest.importorskip("torch")
 
-REPORT = Path(__file__).resolve().parent.parent / "reports" / "skew_measurement.json"
+REPORT = Path(__file__).resolve().parent.parent.parent / "reports" / "skew_measurement.json"
 
 
 def _first_row(dataset_root, split="train"):

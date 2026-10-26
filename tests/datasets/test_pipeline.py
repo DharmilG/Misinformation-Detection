@@ -12,7 +12,7 @@ import pytest
 
 from tests.ids import known_gap
 
-CACHE_ROOT = Path(__file__).resolve().parent.parent / "data" / "processed" / "features"
+CACHE_ROOT = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "features"
 
 
 @known_gap(

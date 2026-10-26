@@ -4,7 +4,7 @@ Every test in the suite carries a ``case`` marker that names it, states the
 document clause it enforces, and carries the requirement in words.  The registry
 is what makes the suite a conformance report rather than a pile of asserts.
 
-``tests/test_harness.py`` asserts that every collected test is registered, so a
+``tests/spec/test_suite.py`` asserts that every collected test is registered, so a
 test added without a case fails the suite.
 """
 
