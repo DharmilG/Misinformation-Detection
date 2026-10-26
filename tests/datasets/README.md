@@ -7,8 +7,8 @@ this component.
 **Naming.** A file here mirrors a module there:
 `src/datasets/manifests.py` → `tests/datasets/test_manifests.py`.
 
-**Status.** Populated for `test_corpus.py`, `test_skew.py`, and `test_pipeline.py`.
-The remaining files listed below are planned. Document 07 §2 states the layout.
+**Status.** Populated. All 7 test modules covering the corpus, skew, pipeline,
+labels, manifests, splits, and leakage audit are in place. Document 07 §2 states the layout.
 
 | File | Clause |
 |---|---|
