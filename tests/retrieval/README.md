@@ -7,8 +7,10 @@ deduplication, and the retrieval API. Document 06 §47 owns this component.
 **Naming.** A file here mirrors a module there:
 `src/retrieval/filters.py` → `tests/retrieval/test_filters.py`.
 
-**Status.** The skeleton only. Nothing has moved yet — the files are still
-flat in `tests/`. Document 07 §2 states the layout.
+**Status.** Populated. All 11 contract test suites for Document 06 §47 (corpus terms,
+ingestion safety, chunking representations, dense embeddings, index storage and invalidation,
+BM25 lexical retrieval, RRF fusion, relevance filters, deduplication, retrieval API,
+and evaluation metrics) are implemented.
 
 | File | Clause |
 |---|---|
