@@ -48,60 +48,69 @@ A test that verifies a component's own contract belongs to that component's docu
 
 ### 2.1 The tiers
 
-| Tier | Marker | Requires | Purpose |
-|---|---|---|---|
-| Fast | *(none)* | Nothing. No weights, no dataset, no network | Contracts, invariants, and pure logic |
-| Component | `slow` | Model weights and/or the dataset | A component's behaviour against real assets |
-| Evaluation | `eval` | The labelled evaluation sets | Metric production |
-| Benchmark | `benchmark` | The candidate models and corpora | The three benchmarks of §4 |
-| End-to-end | `e2e` | The full local stack | Whole-application behaviour |
+Markers are **additive**. A test may carry more than one, and a selection expression composes them.
 
-The markers are declared in the repository's pytest configuration. A test asserts that the declared markers match the ones the suite uses, so a renamed marker fails the suite rather than silently excluding a tier.
+| Marker | Requires | Used by |
+|---|---|---|
+| *(none)* | The runtime dependencies installed. No model weights, no dataset, no network | The contract tests, the cache tests, the harness tests, the documentation tests |
+| `data` | Plus the local dataset at `dataset/ooc_dataset/` | The corpus contract tests, the manifest tests, the preprocessing-skew measurement |
+| `slow` | Plus the CLIP model weights | The encoder behaviour tests, the golden-vector regression, the parity diagnostic |
+| `eval` | Plus the labelled evaluation sets | The metric production of document 07's §18 |
+| `benchmark` | Plus the candidate models and corpora | The three benchmarks of §4 |
+| `e2e` | The full local stack | The whole-application tests |
+
+Two consequences of making the markers additive rather than exclusive:
+
+- The **corpus contract tests need the dataset but not the 600 MB of weights**, so they run in seconds. The corpus's integrity, its label gate, its split structure, and its shortcut ceilings are all verifiable without a model.
+- The **preprocessing-skew measurement and the dataset-scale extraction need both**, and are marked `data` and `slow` together.
+
+A tier whose requirement is absent **skips with a stated reason**. It never fails for a missing dependency, and it never silently passes.
 
 ### 2.2 The commands
 
 ```bash
-pytest                                                        # everything
-pytest -m "not slow and not eval and not benchmark and not e2e" # the fast suite
-pytest -m "slow"                                             # component tier, real assets
-pytest -m "eval"                                             # metric production
-pytest -m "benchmark"                                        # the three benchmarks
-pytest -m "e2e"                                              # the whole application
+python -m tests.run                       # everything
+python -m tests.run --tier fast           # no weights, no dataset
+python -m tests.run --tier data           # the dataset, no weights
+python -m tests.run --tier slow           # the weights
+python -m tests.run --tier "data and slow" # both
+python -m tests.run --tier eval           # metric production
+python -m tests.run --tier benchmark      # the three benchmarks
+python -m tests.run --tier e2e            # the whole application
+python -m tests.run -k truncate           # only the cases whose id contains "truncate"
+python -m tests.run -m "not slow"         # a raw pytest expression
+python -m tests.run --list                # every id, its tier, and the clause it enforces
+python -m tests.run --dataset-root PATH --encoder-cache PATH
+python -m tests.run --report reports/conformance.json
 ```
 
-The evaluation **scripts** are also run directly, because the metric artefacts are produced by them rather than by pytest:
+**The `-k` filter selects by the case id**, not by the test function name. The case id is the stable name a reader finds in this document and in the conformance report, so `python -m tests.run -k truncate` finds the truncation case regardless of what the function is called. A tier selection may name several tiers at once, joined with `and`, because the markers are additive.
+
+The equivalent `pytest` invocations are:
 
 ```bash
-python scripts/evaluate_classifier.py --split test --output reports/classifier_test.json
-python scripts/evaluate_retrieval.py  --split test --output reports/retrieval_test.json
-python scripts/evaluate_generation.py --split test --output reports/generation_test.json
+pytest -m "not slow and not data and not eval and not benchmark and not e2e"   # the fast suite
+pytest -m "data"                                                               # the corpus contract
+pytest -m "slow"                                                               # the encoder
+pytest -m "data and slow"                                                      # both
 ```
 
-> **Consolidation record.** The component documents previously each carried their own tier table and their own command variants. Those are consolidated into this section, and every component document now points here. The command variants that were removed are recorded so the consolidation is auditable:
->
-> | Removed variant | Superseded by |
-> |---|---|
-> | `pytest -m "slow"` | `pytest -m "slow"` in the canonical set above |
-> | `pytest -m "eval"` | `pytest -m "eval"` in the canonical set above |
-> | `pytest -m "benchmark"` | `pytest -m "benchmark"` in the canonical set above |
-> | `pytest -m "e2e"` | `pytest -m "e2e"` in the canonical set above |
-> | `pytest -m "not slow"` | `pytest -m "not slow and not eval and not benchmark and not e2e"` |
-> | `pytest -m "not slow and not parity"` | The canonical fast-suite command; the `parity` marker is no longer a separate tier, and the parity diagnostic's tests run under the `slow` marker in `01_CLIP_FEATURE_EXTRACTION.md` §12 |
-> | `pytest -m "not slow and not benchmark"` | The canonical fast-suite command |
-> | `pytest -m "not slow and not e2e"` | The canonical fast-suite command |
-> | `pytest -m "not e2e"` | The canonical fast-suite command |
->
-> No tier, marker, or capability was dropped. The canonical set runs every tier that the per-document variants ran, and the fast-suite exclusion is now a single command that omits all four heavy tiers at once.
+The runner is a thin wrapper over `pytest`. It adds the tier and filter selection, the dataset and encoder-cache paths, and the conformance report.
+
 ### 2.3 Marker discipline
 
 | Requirement | Enforcement |
 |---|---|
+| The markers are declared in the repository's pytest configuration | A test asserts the declared markers match the ones the suite uses |
 | The fast suite never touches the network | A test asserts that the fast selection contains no network-dependent test, by blocking sockets during the fast run |
-| The fast suite never runs an expensive test | The default `addopts` exclude `slow`, `eval`, `benchmark`, and `e2e` |
-| An `eval` test cannot tune and report on the same cases | The harness records which split it read and refuses to emit a test-set report from the development file. See §3 |
+| The fast suite never runs an expensive test | The default selection omits `slow`, `data`, `eval`, `benchmark`, and `e2e` |
+| A tier that needs something absent skips with a reason | Enforced by the fixtures, and asserted by the harness tests |
+| An `eval` test cannot tune and report on the same cases | The harness records which split it read and refuses to emit a test-set report from the development file |
 | A benchmark result records the candidate configuration and the selection rule | Enforced by the harness, and asserted in the benchmark output |
-| The declared markers match the used markers | A test asserts the pytest configuration against the markers used in the suite |
+| **Every collected test carries a registered id and a tier** | A test asserts it, so a test added without an id fails the suite |
+| **A full run produces zero collection errors, and collects nothing outside `tests/`** | Two tests assert it: the suite is collected in full and must succeed, and every collected item must live under `tests/` |
 
+The last two are what keep the suite and this document from drifting apart.
 ### 2.4 Environment requirements
 
 | Tier | Environment |
@@ -118,9 +127,44 @@ python scripts/evaluate_generation.py --split test --output reports/generation_t
 |---|---|
 | Overall `src/` coverage | **Reported**, not gated. A coverage number on its own is a vanity metric |
 | Gated modules | **Measured separately per module.** Each must individually meet **90% line coverage**. A combined 90% could conceal a poorly tested module |
-| Gated module set | Document 04's validation; Document 01's encoder contract; Document 06's filters, lexical index, validation, eligibility and outcome computation; Document 05's comparison and rendering; Document 03's loader and safe loading |
+| Gated module set | Document 04's validation; Document 01's encoder contract; Document 02's label audit and manifest builder; Document 06's filters, lexical index, validation, eligibility and outcome computation; Document 05's comparison and rendering; Document 03's loader and safe loading |
 | Behavioural assertions | **Retained.** Coverage is not evidence of correctness. The outcome computation, the citation eligibility rule, the metadata validation, and the comparison matrix are covered by behavioural tests, not by line counts |
+### 2.6 The test layout
 
+The suite is laid out to mirror `src/`.
+
+> A test lives in the folder of the component it verifies, and its file name mirrors the module it tests.
+> `src/retrieval/filters.py` → `tests/retrieval/test_filters.py`
+
+The rule already holds inside the per-document module layouts — document 06 §47 lists `src/retrieval/filters.py` in its module block and `test_filters.py` in its test block, and this change gives the test block the matching folder heading. The folder makes the pairing explicit, and it resolves the collisions that a flat directory cannot: `test_pipeline.py` is both document 04's inference pipeline and document 02's extraction pipeline, and `test_dataset.py` is document 03's torch Dataset reader.
+
+The boundary holds in both directions. `pytest.ini` sets `testpaths = tests`, so a run reaches only the suite; and `src/` contains no file named `test_*.py`, so there is nothing beside the implementation to exclude from collection. A harness test asserts the second half — a stray script placed beside the implementation fails the run with a message naming it, rather than being quietly ignored.
+
+| Folder | Component | Document | Owns |
+|---|---|---|---|
+| `tests/clip_model/` | `src/clip_model/` | Document 01, Document 03 | The encoder, the feature cache, the parity diagnostic, the golden vectors, the classifier |
+| `tests/datasets/` | `src/datasets/` | Document 02 | The corpus, its label gate, its manifests, its splits, the dataset-scale extraction |
+| `tests/input_pipeline/` | `src/input_pipeline/` | Document 04 | The validation, the preprocessing, the request schema, the status model |
+| `tests/retrieval/` | `src/retrieval/` | Document 06 §47 | The evidence corpus, ingestion, chunking, the index, lexical and dense retrieval, fusion, the filters, dedup |
+| `tests/rag/` | `src/rag/` | Document 06 §48 | The prompt, the assembly, the validation, the eligibility rule, the outcome |
+| `tests/reporting/` | `src/reporting/` | Document 05 | The report model, the comparison, the export |
+| `tests/spec/` | no component | Document 07 | The documentation, and the suite's own invariants |
+
+Two things stay flat at the top of `tests/`, because they are the harness rather than a component's tests:
+
+| File | Role |
+|---|---|
+| `tests/conftest.py` | The fixtures, the tier skips, the declared xfails, the result capture |
+| `tests/ids.py` | The case registry - `case()` and `known_gap()` |
+| `tests/docmap.py` | Resolving a document section reference |
+| `tests/run.py` | The command line |
+| `tests/fixtures/` | The shared synthetic artefacts - generated images, caption corpora, the golden baseline |
+
+`tests/spec/` deserves its note. Its tests belong to no component: they check the **documentation** and the **suite itself**. They are what stops the specification and the implementation from drifting apart, which is what makes the rest of the suite trustworthy — the frozen overview, the canonical owner sections, the case-id registry, and the traceability table below. They are not tests of the system, and they are not run separately; they are in the same command as everything else, because a check that is easy to forget is a check that does not happen.
+
+**Status.** The folders exist and the move is under way. `tests/clip_model/` is populated; the other six folders are still skeletons, and the test modules that belong to them are still flat in `tests/`. The tables in §12.2 and §12.3 are keyed by **case id**, not by file path, so the layout does not change which requirement any case enforces.
+
+---
 ---
 
 ## 3. The evaluation harness invariants
@@ -159,18 +203,18 @@ These verify the boundaries between components, not the components themselves.
 
 | # | Interface | Test | Assertion |
 |---|---|---|---|
-| 1 | Document 04 → Document 01 | `test_pipeline.py` | An `InputRequest` produced by the input pipeline satisfies every invariant in Document 04 §9 |
-| 2 | Document 01 → Document 04 | `test_pipeline.py` | The `EmbeddingPair` fields the inference path reads - the two vectors, the token counts, and the truncation flag - are present and consistent |
-| 3 | Document 01 → Document 03 | `test_classifier.py` | The feature family recorded in the checkpoint's `inference` block reconstructs a feature vector of the length the first layer expects |
-| 4 | Document 03 → Document 04 | `test_checkpoint.py` | A loaded classifier returns a result whose label matches the recorded threshold, positive class, and class order |
-| 5 | Document 04 → Document 06 | `test_retriever.py` | The `AssessmentContext` carries the normalized caption, both image flags, the classifier result, and the interpretation string, and no other fields |
-| 6 | Document 06 → Document 05 | `test_reporting.py` | Every retrieved passage renders with its complete metadata, and every accepted citation resolves to a retrieved passage |
-| 7 | Document 06 → Document 05 | `test_reporting.py` | The assessment section's status equals the assessment's upstream status; the interface never re-classifies it |
-| 8 | Document 04 → Document 05 | `test_reporting.py` | The classifier section's status equals the classifier result's upstream status |
-| 9 | Document 05 → Document 05 | `test_reporting.py` | The comparison state matches Document 05 §8.2's exhaustive mapping for the given pair of directions |
-| 10 | Document 02 → Document 06 | `test_corpus_terms.py` | The corpus manifest hash recorded in the index metadata matches the current manifest |
-| 11 | Document 02 → Document 03 | `test_dataset.py` | The manifest's per-row image and caption hashes match the feature cache's per-row hashes |
-| 12 | Document 06 → Document 06 | `test_outcome.py` | The computed outcome satisfies the per-status invariants of Document 06 §30.2 for every status combination |
+| 1 | Document 04 → Document 01 | `tests/input_pipeline/test_pipeline.py` | An `InputRequest` produced by the input pipeline satisfies every invariant in Document 04 §9 |
+| 2 | Document 01 → Document 04 | `tests/input_pipeline/test_pipeline.py` | The `EmbeddingPair` fields the inference path reads - the two vectors, the token counts, and the truncation flag - are present and consistent |
+| 3 | Document 01 → Document 03 | `tests/clip_model/test_classifier.py` | The feature family recorded in the checkpoint's `inference` block reconstructs a feature vector of the length the first layer expects |
+| 4 | Document 03 → Document 04 | `tests/clip_model/test_checkpoint.py` | A loaded classifier returns a result whose label matches the recorded threshold, positive class, and class order |
+| 5 | Document 04 → Document 06 | `tests/retrieval/test_retriever.py` | The `AssessmentContext` carries the normalized caption, both image flags, the classifier result, and the interpretation string, and no other fields |
+| 6 | Document 06 → Document 05 | `tests/reporting/test_reporting.py` | Every retrieved passage renders with its complete metadata, and every accepted citation resolves to a retrieved passage |
+| 7 | Document 06 → Document 05 | `tests/reporting/test_reporting.py` | The assessment section's status equals the assessment's upstream status; the interface never re-classifies it |
+| 8 | Document 04 → Document 05 | `tests/reporting/test_reporting.py` | The classifier section's status equals the classifier result's upstream status |
+| 9 | Document 05 → Document 05 | `tests/reporting/test_reporting.py` | The comparison state matches Document 05 §8.2's exhaustive mapping for the given pair of directions |
+| 10 | Document 02 → Document 06 | `tests/retrieval/test_corpus_terms.py` | The corpus manifest hash recorded in the index metadata matches the current manifest |
+| 11 | Document 02 → Document 03 | `tests/clip_model/test_dataset.py` | The manifest's per-row image and caption hashes match the feature cache's per-row hashes |
+| 12 | Document 06 → Document 06 | `tests/rag/test_outcome.py` | The computed outcome satisfies the per-status invariants of Document 06 §30.2 for every status combination |
 
 ---
 
@@ -180,30 +224,30 @@ These verify the boundaries between components, not the components themselves.
 
 | # | Test | Assertion |
 |---|---|---|
-| 1 | `test_checkpoint.py` | The checkpoint loads through `load_checkpoint` with the real encoder present |
-| 2 | `test_checkpoint.py` | Every file's SHA-256 is verified **before** any file is deserialized |
-| 3 | `test_checkpoint.py` | A modified file raises `CheckpointIntegrityError` and the deserializer is never reached |
-| 4 | `test_checkpoint.py` | An archive whose hash differs from the published value raises `ArtifactTrustError` |
-| 5 | `test_checkpoint.py` | The state dict loads with `strict=True`; a missing or unexpected key raises |
-| 6 | `test_checkpoint.py` | `weights_only=True` is used, and an environment without the flag raises rather than falling back |
-| 7 | `test_compatibility.py` | A hard-requirement failure raises `CheckpointIncompatibleError` and the message states both the installed and the expected version |
-| 8 | `test_compatibility.py` | A declared-range failure warns, and escalates to an error under `strict_compatibility` |
-| 9 | `test_checkpoint.py` | The feature vector is reconstructed from the recorded family, and the dimension is asserted against the first layer |
-| 10 | `test_checkpoint.py` | Offline mode B loads from a populated cache with `local_files_only=True` and no network |
-| 11 | `test_checkpoint.py` | Offline mode C raises `EncoderUnavailableError` with the command to populate the cache |
-| 12 | `test_checkpoint.py` | Offline mode D raises `EncoderProvenanceError` when a cached encoder file's hash differs |
+| 1 | `tests/clip_model/test_checkpoint.py` | The checkpoint loads through `load_checkpoint` with the real encoder present |
+| 2 | `tests/clip_model/test_checkpoint.py` | Every file's SHA-256 is verified **before** any file is deserialized |
+| 3 | `tests/clip_model/test_checkpoint.py` | A modified file raises `CheckpointIntegrityError` and the deserializer is never reached |
+| 4 | `tests/clip_model/test_checkpoint.py` | An archive whose hash differs from the published value raises `ArtifactTrustError` |
+| 5 | `tests/clip_model/test_checkpoint.py` | The state dict loads with `strict=True`; a missing or unexpected key raises |
+| 6 | `tests/clip_model/test_checkpoint.py` | `weights_only=True` is used, and an environment without the flag raises rather than falling back |
+| 7 | `tests/clip_model/test_compatibility.py` | A hard-requirement failure raises `CheckpointIncompatibleError` and the message states both the installed and the expected version |
+| 8 | `tests/clip_model/test_compatibility.py` | A declared-range failure warns, and escalates to an error under `strict_compatibility` |
+| 9 | `tests/clip_model/test_checkpoint.py` | The feature vector is reconstructed from the recorded family, and the dimension is asserted against the first layer |
+| 10 | `tests/clip_model/test_checkpoint.py` | Offline mode B loads from a populated cache with `local_files_only=True` and no network |
+| 11 | `tests/clip_model/test_checkpoint.py` | Offline mode C raises `EncoderUnavailableError` with the command to populate the cache |
+| 12 | `tests/clip_model/test_checkpoint.py` | Offline mode D raises `EncoderProvenanceError` when a cached encoder file's hash differs |
 
 ### 6.2 Prediction
 
 | # | Test | Assertion |
 |---|---|---|
-| 1 | `test_pipeline.py` | A valid request produces `status == OK` with a label, a score, and a logit |
-| 2 | `test_pipeline.py` | The label is determined by thresholding the **uncalibrated** score against the recorded threshold |
-| 3 | `test_pipeline.py` | A checkpoint with no calibration artifact produces a label and a score, with `probability is None` and `calibration_status == ABSENT` |
-| 4 | `test_pipeline.py` | The label is identical with and without a calibration artifact |
-| 5 | `test_pipeline.py` | The same input twice yields an identical score, probability, and label, under a fixed environment |
-| 6 | `test_pipeline.py` | The cold request is measurably slower than the warm path, and the warm path does not reload the encoder |
-| 7 | `test_pipeline.py` | The registry is constructed exactly once across many requests |
+| 1 | `tests/input_pipeline/test_pipeline.py` | A valid request produces `status == OK` with a label, a score, and a logit |
+| 2 | `tests/input_pipeline/test_pipeline.py` | The label is determined by thresholding the **uncalibrated** score against the recorded threshold |
+| 3 | `tests/input_pipeline/test_pipeline.py` | A checkpoint with no calibration artifact produces a label and a score, with `probability is None` and `calibration_status == ABSENT` |
+| 4 | `tests/input_pipeline/test_pipeline.py` | The label is identical with and without a calibration artifact |
+| 5 | `tests/input_pipeline/test_pipeline.py` | The same input twice yields an identical score, probability, and label, under a fixed environment |
+| 6 | `tests/input_pipeline/test_pipeline.py` | The cold request is measurably slower than the warm path, and the warm path does not reload the encoder |
+| 7 | `tests/input_pipeline/test_pipeline.py` | The registry is constructed exactly once across many requests |
 
 ---
 
@@ -478,63 +522,117 @@ This requirement is stated in Document 05 §1.1 and enforced by the tests of Doc
 
 ## 12. Contract-to-test traceability
 
-Every contract in Documents 01-06 has at least one test. The status column is the authority: sign-off (§17) requires every row to be `IMPLEMENTED`.
+Every contract has a row. The status column is the authority, and it is not a promise - it is read from the conformance report that the suite writes.
+
+### 12.1 The status vocabulary
+
+| Status | Meaning |
+|---|---|
+| `IMPLEMENTED` | A test enforces the contract and **passes** today |
+| `DECLARED GAP` | A test enforces the contract and is marked `xfail(strict=True)`. The requirement is not met yet, and the gap is named |
+| `PLANNED` | No test exists yet. The contract is specified but not yet covered |
+
+A `DECLARED GAP` is a pinned, named requirement, not an excuse. When the implementation catches up, the test reports **unexpectedly passing** and the run fails, which forces the marker to be removed. The two states cannot both be true.
+
+The full report, with the clause and the requirement for every case, is `reports/conformance.json`. It is regenerated by `python -m tests.run --report reports/conformance.json`.
+
+### 12.2 The covered contracts
+
+| Contract | Document and section | Test cases | Tier | Status |
+|---|---|---|---|---|
+| The encoder's output contract | Document 01 §7.2 | `clip.extract.shape`, `clip.extract.dtype`, `clip.extract.finite` | slow | IMPLEMENTED |
+| The token metadata in the result | Document 01 §7.2 | `clip.extract.token_metadata` | slow | DECLARED GAP |
+| The public API surface | Document 01 §7.1 | `clip.api.encode_pair_exists`, `clip.api.encode_images_exists`, `clip.api.encode_texts_exists`, `clip.api.encode_batch_exists` | fast | DECLARED GAP |
+| The projection into the shared space | Document 01 §8.1 | `clip.extract.projection_dim_from_config` | slow | IMPLEMENTED |
+| The L2 normalisation | Document 01 §8.2 | `clip.extract.unit_norm`, `clip.extract.norm_is_idempotent` | slow | IMPLEMENTED |
+| The EOT-position pooling | Document 01 §8.3 | `clip.extract.text_pooling_is_eot` | slow | IMPLEMENTED |
+| The truncation of a caption past the window | Document 01 §5.2 | `clip.extract.long_caption_truncates` | slow | DECLARED GAP |
+| The encoder's lifecycle | Document 01 §6.1 | `clip.api.single_load_per_process` | fast | DECLARED GAP |
+| The evaluation mode and the detached graph | Document 01 §6.2, Document 01 §6.3 | `clip.extract.eval_mode`, `clip.extract.no_autograd_graph` | slow | IMPLEMENTED |
+| The pinned revision and the provenance record | Document 01 §4.2, Document 01 §4.3 | `clip.api.revision_pinned`, `clip.api.encoder_info_provenance` | fast | DECLARED GAP |
+| The device policy | Document 01 §9.1 | `clip.api.device_selectable` | fast | DECLARED GAP |
+| The error contract | Document 01 §13.1, Document 01 §13.2 | `clip.api.errors_module_exists`, `clip.api.typed_errors` | fast | DECLARED GAP |
+| Repeatability on CPU | Document 01 §14.2 | `clip.extract.repeatable_on_cpu` | slow | IMPLEMENTED |
+| The saved feature format | Document 01 §11.2 | `cache.saved_array_shapes`, `cache.npz_no_pickle` | slow | IMPLEMENTED |
+| The cache key | Document 01 §11.3 | `cache.key_components` | fast | DECLARED GAP |
+| The cache metadata | Document 01 §11.4 | `cache.metadata_present` | fast | DECLARED GAP |
+| The atomic write | Document 01 §11.5 | `cache.atomic_write` | fast | DECLARED GAP |
+| The load validation | Document 01 §11.6 | `cache.load_validates`, `cache.npz_roundtrip_values_identical` | fast, slow | MIXED |
+| The device and the cache key | Document 01 §11.7 | `cache.device_excluded_by_default`, `cache.device_namespace_flag` | fast | DECLARED GAP |
+| The parity diagnostic | Document 01 §12.2, Document 01 §12.4, Document 01 §12.7, Document 01 §12.8 | `parity.id_alignment`, `parity.text_path_within_tolerance`, `parity.report_generated`, `parity.image_path_excluded` | fast | DECLARED GAP |
+| The parity precondition | Document 01 §15.7 | `parity.skip_when_reference_absent` | fast | IMPLEMENTED |
+| The golden-vector regression | Document 01 §15.5, Document 01 §14.3 | `golden.detects_change` (implemented); `golden.baseline_present`, `golden.reproduces_within_tolerance` (gaps) | fast, slow | MIXED |
+| The corpus source and the row counts | Document 02 §4.1 | `dataset.rows_match_csv` | data | IMPLEMENTED |
+| The label verification gate | Document 02 §5 | `dataset.rows_match_csv`, `dataset.label_balance_exact`, `dataset.pair_structure`, `dataset.label0_caption_eq_image`, `dataset.labels_json_rule_matches`, `dataset.all_images_exist`, `dataset.one_caption_per_id`, `dataset.one_path_per_id` | data | IMPLEMENTED |
+| The label mapping and the class balance | Document 02 §6.2, Document 02 §6.4 | `dataset.labels_json_rule_matches`, `dataset.label_balance_exact` | data | IMPLEMENTED |
+| The image reference resolution | Document 02 §7 | `dataset.all_images_exist` | data | IMPLEMENTED |
+| The manifest record and its integrity | Document 02 §12 | `dataset.one_caption_per_id`, `dataset.one_path_per_id` | data | IMPLEMENTED |
+| The split structure and the preserved official split | Document 02 §9 | `dataset.no_cross_split_caption_overlap`, `dataset.no_cross_split_image_overlap` | data | IMPLEMENTED |
+| The shortcut ceilings | Document 02 §13.1 | `dataset.shortcut_ceiling_caption_only`, `dataset.shortcut_ceiling_image_only`, `dataset.caption_repeats_within_split`, `dataset.pair_structure` | data | IMPLEMENTED |
+| The corpus pre-resize | Document 02 §8.1.1 | `dataset.image_shorter_side`, `skew.downscale_is_noop_on_corpus`, `skew.crop_region_equivalent` | data | IMPLEMENTED |
+| The accepted skew, measured | Document 02 §8.1.2 | `skew.native_vs_upscaled_similarity`, `skew.inference_variant_matches_pipeline`, `preprocess.downscale_is_not_observable_in_the_embedding` | data, slow | IMPLEMENTED |
+| The corpus caption lengths | Document 02 §8.2 | `dataset.captions_within_clip_context` | data | IMPLEMENTED |
+| The dataset-scale extraction | Document 02 §14, Document 02 §14.3 | `pipeline.module_exists`, `pipeline.extract_full_split`, `pipeline.alignment_preserved`, `pipeline.deterministic`, `pipeline.cache_key_carries_manifest_hash`, `pipeline.no_pickle_in_cache` | data | DECLARED GAP |
+| The corpus exclusion from the repository | Document 02 §4.2 | `docs.dataset_not_committed` | fast | IMPLEMENTED |
+| The image mode | Document 04 §7.1 | `preprocess.rgb_mode` | slow | IMPLEMENTED |
+| The EXIF orientation and the rejected image | Document 04 §7.2 | `preprocess.exif_applied`, `preprocess.corrupt_image_rejected` | slow | IMPLEMENTED |
+| The alpha flattening | Document 04 §7.3 | `preprocess.alpha_white` | slow | DECLARED GAP |
+| The downscale to 2048 px | Document 04 §7.4, Document 04 §7.4.1 | `preprocess.downscale_to_2048` (gap); `skew.downscale_is_noop_on_corpus` (implemented) | slow, data | MIXED |
+| The tier taxonomy | Document 07 §2.1 | `harness.tier_taxonomy_matches_doc`, `harness.tier_selection_is_composable` | fast | IMPLEMENTED |
+| The command set | Document 07 §2.2 | `harness.command_set_matches_doc`, `harness.filter_matches_the_case_id`, `harness.discovery_finds_every_collected_module` | fast | IMPLEMENTED |
+| The marker discipline | Document 07 §2.3 | `harness.every_test_registered`, `harness.collection_clean` | fast | IMPLEMENTED |
+| The interface and boundary matrix | Document 07 §11 | `docs.canonical_owners_present` | fast | IMPLEMENTED |
+| This traceability table | Document 07 §12 | `harness.traceability_sections_resolve`, `harness.case_ids_unique` | fast | IMPLEMENTED |
+| The documentation set | Document 00 §11, Document 00 §11.1 | `docs.every_document_present`, `docs.documentation_directory_is_exact`, `docs.overview_unchanged`, `docs.no_team_names_in_filenames` | fast | IMPLEMENTED |
+| The pinned requirements | Document 00 §11.1, Document 01 §4.2 | `docs.requirements_pinned` | fast | DECLARED GAP |
+
+### 12.3 The contracts not yet covered
+
+These are specified, and they have no test yet. Each one names the file its test will live in.
 
 | Contract | Document and section | Test file | Test | Status |
 |---|---|---|---|---|
-| Input validation rules and limits | Document 04 §6 | `test_input_pipeline.py` | Accepted, rejected, and over-limit inputs | PLANNED |
-| Image preprocessing and the content hash | Document 04 §7 | `test_input_pipeline.py` | EXIF rotation, alpha flattening, downscale, hash | PLANNED |
-| Caption normalization and length rules | Document 04 §8 | `test_input_pipeline.py` | NFKC, whitespace, zero-width, length bounds | PLANNED |
-| The request schema and its invariants | Document 04 §9 | `test_input_pipeline.py` | Field presence and invariant checks | PLANNED |
-| The status vocabulary and the no-fabrication rule | Document 04 §11 | `test_pipeline.py` | Every non-`OK` result has `None` values | PLANNED |
-| The three quantities and the score-only mode | Document 04 §14 | `test_pipeline.py` | Score, probability, and calibration status | PLANNED |
-| The decision rule and threshold source | Document 04 §14 | `test_pipeline.py` | The threshold comes only from the checkpoint | PLANNED |
-| The degradation matrix | Document 04 §17 | `test_pipeline.py` | Every row of the matrix | PLANNED |
-| The crop-retention calculation | Document 04 §23 | `test_warnings.py` | The retained-area formula and the threshold | PLANNED |
-| The canonical explanation copy | Document 04 §24 | `test_pipeline.py` | The copy is used, and the fallback when absent | PLANNED |
-| The CLIP output schema and its invariants | Document 01 §7 | `test_clip_encoder.py` | Shape, dtype, finiteness, unit norm | PLANNED |
-| Projection, normalization, and pooling verification | Document 01 §8 | `test_clip_encoder.py` | The measured, not assumed, behaviour | PLANNED |
-| The device policy | Document 01 §9 | `test_clip_encoder.py` | Resolution and the explicit request rule | PLANNED |
-| The feature cache key, atomic writes, and validation | Document 01 §11 | `test_clip_encoder.py` | Key components, interrupted writes, invalidation | PLANNED |
-| The parity diagnostic | Document 01 §12 | `test_parity.py` | The preconditions and the metrics | PLANNED |
-| The label verification gate | Document 02 §5 | `test_corpus_terms.py` | The gate's enforcement | PLANNED |
-| The label mapping and the retained source labels | Document 02 §6 | `test_labels.py` | The mapping table and the `UNKNOWN` rule | PLANNED |
-| The manifest format and the integrity checks | Document 02 §12 | `test_manifests.py` | Round trip, determinism, hash detection | PLANNED |
-| The split configurations and the preserved official split | Document 02 §9 | `test_splits.py` | Assignment preserved; groups not straddling | PLANNED |
-| The leakage grouping feasibility and the decision rules | Document 02 §10 | `test_leakage.py` | Component measurement and the selection rule | PLANNED |
-| The leakage audit and the exposure fields | Document 02 §11 | `test_leakage.py` | Every check in the audit | PLANNED |
-| The classifier families and the feature construction | Document 03 §4 | `test_classifier.py` | Dimensions and parameter counts | PLANNED |
-| The training protocol, the grid, and the seeding | Document 03 §7 | `test_training.py` | Determinism and the grid applicability | PLANNED |
-| The metric calculation rules | Document 03 §8 | `test_metrics.py` | Hand-computed values, confusion-matrix orientation | PLANNED |
-| The selection protocol and the tie-break | Document 03 §9 | `test_training.py` | The sealed split and the tie-break | PLANNED |
-| The operating threshold and the calibration | Document 03 §10, Document 03 §12 | `test_classifier.py` | Threshold selection and the calibration fit | PLANNED |
-| The checkpoint contents and the packaging gates | Document 03 §17, Document 03 §25 | `test_packaging.py` | Every gate | PLANNED |
-| The loading contract and safe loading | Document 03 §27 | `test_checkpoint.py` | Strict load, `weights_only`, hash-before-deserialize | PLANNED |
-| The verification procedure and its tolerance | Document 03 §28 | `test_checkpoint.py` | Class agreement and the score tolerance | PLANNED |
-| The corpus terms enforcement | Document 06 §6 | `test_corpus_terms.py` | Refusal without a terms record | PLANNED |
-| The ingestion safety controls | Document 06 §9 | `test_ingest_safety.py` | Redirects, size limits, private addresses | PLANNED |
-| The three text representations | Document 06 §10 | `test_chunking.py` | Display, lexical, and dense strings | PLANNED |
-| The chunk token budget | Document 06 §11 | `test_chunking.py` | The final embedded string fits the budget | PLANNED |
-| The BM25 index metadata and rebuild equivalence | Document 06 §14 | `test_lexical.py` | Identical rankings after a rebuild | PLANNED |
-| The filtering order and the absolute floor | Document 06 §19 | `test_filters.py` | The dense floor, the relative band, the caps | PLANNED |
-| The counter-evidence retention | Document 06 §19 | `test_filters.py` | A relevant contradicting passage is retained | PLANNED |
-| The empty-but-`OK` result | Document 06 §19 | `test_retriever.py` | Zero passages with status `OK` | PLANNED |
-| The eligibility rule | Document 06 §28 | `test_eligibility.py` | Each of the five conditions | PLANNED |
-| The citation and schema validation | Document 06 §29 | `test_validation.py` | Quote verification, URL scan, schema bounds | PLANNED |
-| The per-component outcome computation | Document 06 §30 | `test_outcome.py` | Every row of the outcome table | PLANNED |
-| The assessment per-status invariants | Document 06 §31 | `test_generation.py` | The invariants of the status table | PLANNED |
-| The prompt-injection defences | Document 06 §33 | `test_injection.py` | The fixture cases and the fake-generator variant | PLANNED |
-| The report model and the per-section status contract | Document 05 §2 | `test_reporting.py` | The payload table and the invariants | PLANNED |
-| The comparison matrix | Document 05 §8 | `test_comparison.py` | Every combination of directions | PLANNED |
-| The error and fallback matrix | Document 05 §10 | `test_reporting.py` | All eight conditions | PLANNED |
-| The escaping of untrusted text | Document 05 §16 | `test_reporting.py` | Markdown, unusual Unicode, control sequences | PLANNED |
-| The export contents and exclusions | Document 05 §15 | `test_reporting.py` | Exactly the enumerated fields | PLANNED |
-| The analysis fingerprint and the rerun rules | Document 05 §12 | `test_reporting.py` | Display change, new input, configuration change | PLANNED |
-| The end-to-end case manifest | Document 07 §8 | `test_e2e_cases.py` | The manifest schema and the case list | PLANNED |
-| The availability rates | Document 07 §9 | `test_rates.py` | The denominators | PLANNED |
-| The evaluation harness invariants | Document 07 §3 | `test_harness.py` | Each script refuses to run on a precondition failure | PLANNED |
+| Input validation rules and limits | Document 04 §6 | `tests/input_pipeline/test_input_pipeline.py` | Accepted, rejected, and over-limit inputs | PLANNED |
+| The request schema and its invariants | Document 04 §9 | `tests/input_pipeline/test_input_pipeline.py` | Field presence and invariant checks | PLANNED |
+| The status vocabulary and the no-fabrication rule | Document 04 §11 | `tests/input_pipeline/test_pipeline.py` | Every non-`OK` result has `None` values | PLANNED |
+| The three quantities and the score-only mode | Document 04 §14 | `tests/input_pipeline/test_pipeline.py` | Score, probability, and calibration status | PLANNED |
+| The decision rule and threshold source | Document 04 §14 | `tests/input_pipeline/test_pipeline.py` | The threshold comes only from the checkpoint | PLANNED |
+| The degradation matrix | Document 04 §17 | `tests/input_pipeline/test_pipeline.py` | Every row of the matrix | PLANNED |
+| The crop-retention calculation | Document 04 §23 | `tests/input_pipeline/test_warnings.py` | The retained-area formula and the threshold | PLANNED |
+| The canonical explanation copy | Document 04 §24 | `tests/input_pipeline/test_pipeline.py` | The copy is used, and the fallback when absent | PLANNED |
+| The leakage grouping feasibility and the decision rules | Document 02 §10 | `tests/datasets/test_leakage.py` | Component measurement and the selection rule | PLANNED |
+| The leakage audit and the exposure fields | Document 02 §11 | `tests/datasets/test_leakage.py` | Every check in the audit | PLANNED |
+| The classifier families and the feature construction | Document 03 §4 | `tests/clip_model/test_classifier.py` | Dimensions and parameter counts | PLANNED |
+| The training protocol, the grid, and the seeding | Document 03 §7 | `tests/clip_model/test_training.py` | Determinism and the grid applicability | PLANNED |
+| The metric calculation rules | Document 03 §8 | `tests/clip_model/test_metrics.py` | Hand-computed values, confusion-matrix orientation | PLANNED |
+| The selection protocol and the tie-break | Document 03 §9 | `tests/clip_model/test_training.py` | The sealed split and the tie-break | PLANNED |
+| The operating threshold and the calibration | Document 03 §10, Document 03 §12 | `tests/clip_model/test_classifier.py` | Threshold selection and the calibration | PLANNED |
+| The checkpoint contents and the packaging gates | Document 03 §17, Document 03 §25 | `tests/clip_model/test_packaging.py` | Every gate | PLANNED |
+| The loading contract and safe loading | Document 03 §27 | `tests/clip_model/test_checkpoint.py` | Strict load, `weights_only`, hash-before-deserialize | PLANNED |
+| The verification procedure and its tolerance | Document 03 §28 | `tests/clip_model/test_checkpoint.py` | Class agreement and the score tolerance | PLANNED |
+| The corpus terms enforcement | Document 06 §6 | `tests/retrieval/test_corpus_terms.py` | Refusal without a terms record | PLANNED |
+| The ingestion safety controls | Document 06 §9 | `tests/retrieval/test_ingest_safety.py` | Redirects, size limits, private addresses | PLANNED |
+| The three text representations | Document 06 §10 | `tests/retrieval/test_chunking.py` | Display, lexical, and dense strings | PLANNED |
+| The chunk token budget | Document 06 §11 | `tests/retrieval/test_chunking.py` | The final embedded string fits the budget | PLANNED |
+| The BM25 index metadata and rebuild equivalence | Document 06 §14 | `tests/retrieval/test_lexical.py` | Identical rankings after a rebuild | PLANNED |
+| The filtering order and the absolute floor | Document 06 §19 | `tests/retrieval/test_filters.py` | The dense floor, the relative band, the caps | PLANNED |
+| The counter-evidence retention | Document 06 §19 | `tests/retrieval/test_filters.py` | A relevant contradicting passage is retained | PLANNED |
+| The empty-but-`OK` result | Document 06 §19 | `tests/retrieval/test_retriever.py` | Zero passages with status `OK` | PLANNED |
+| The eligibility rule | Document 06 §28 | `tests/rag/test_eligibility.py` | Each of the five conditions | PLANNED |
+| The citation and schema validation | Document 06 §29 | `tests/rag/test_validation.py` | Quote verification, URL scan, schema bounds | PLANNED |
+| The per-component outcome computation | Document 06 §30 | `tests/rag/test_outcome.py` | Every row of the outcome table | PLANNED |
+| The assessment per-status invariants | Document 06 §31 | `tests/rag/test_generation.py` | The invariants of the status table | PLANNED |
+| The prompt-injection defences | Document 06 §33 | `tests/rag/test_injection.py` | The fixture cases and the fake-generator variant | PLANNED |
+| The report model and the per-section status contract | Document 05 §2 | `tests/reporting/test_reporting.py` | The payload table and the invariants | PLANNED |
+| The comparison matrix | Document 05 §8 | `tests/reporting/test_comparison.py` | Every combination of directions | PLANNED |
+| The error and fallback matrix | Document 05 §10 | `tests/reporting/test_reporting.py` | All eight conditions | PLANNED |
+| The escaping of untrusted text | Document 05 §16 | `tests/reporting/test_reporting.py` | Markdown, unusual Unicode, control sequences | PLANNED |
+| The export contents and exclusions | Document 05 §15 | `tests/reporting/test_reporting.py` | Exactly the enumerated fields | PLANNED |
+| The analysis fingerprint and the rerun rules | Document 05 §12 | `tests/reporting/test_reporting.py` | Display change, new input, configuration change | PLANNED |
+| The end-to-end case manifest | Document 07 §8 | `tests/spec/test_e2e_cases.py` | The manifest schema and the case list | PLANNED |
+| The availability rates | Document 07 §9 | `tests/spec/test_rates.py` | The denominators | PLANNED |
+| The evaluation harness invariants | Document 07 §3 | `tests/spec/test_harness.py` | Each script refuses to run on a precondition failure | PLANNED |
 | The clean-clone reproduction | Document 07 §13 | Manual, recorded | The procedure completes on a clean machine | PLANNED |
-
 ---
 
 ## 13. Clean-clone and offline reproduction
@@ -552,23 +650,41 @@ The local-first claim - "no key, no telemetry, no network at inference" - is **s
 ### 13.2 The clean-clone procedure
 
 ```text
-1. Install the supported Python version; create a virtual environment.
-2. pip install -r requirements.txt          (pinned, verified)
-3. Fetch the CLIP encoder at the pinned revision.
-4. Fetch the dataset, completing the rights check; place it under data/raw/.
-5. Prepare the manifests:  scripts/prepare_dataset.py
-6. Extract features:           scripts/extract_features.py
-7. Train the classifier:       scripts/train_classifier.py
-   - or download the released artifact and verify it -
-8. Build the evidence index:   scripts/build_evidence_index.py
-9. Select the local generation model: scripts/benchmark_models.py
-10. Run the application:       streamlit run app.py
-11. Run the test suite:        pytest
+ 1. Install the supported Python version; create a virtual environment.
+ 2. pip install -r requirements.txt          (pinned, verified)
+    pip install pandas pytest               (the corpus tests and the runner)
+ 3. Fetch the CLIP encoder at the pinned revision.
+    - the first slow-tier run downloads it; or pre-populate the Hugging Face cache -
+ 4. Fetch the corpus, completing the rights check, and extract it to dataset/ooc_dataset/.
+    The upstream zip is group-shared. The extracted folder is what the code reads.
+ 5. Audit the corpus:           scripts/audit_dataset.py
+    - writes reports/dataset_audit.json and fails loudly on a gate violation -
+ 6. Prepare the manifests:      scripts/prepare_dataset.py
+ 7. Extract features:           scripts/extract_features.py
+ 8. Train the classifier:       scripts/train_classifier.py
+    - or download the released artifact and verify it -
+ 9. Build the evidence index:   scripts/build_evidence_index.py
+10. Select the local generation model: scripts/benchmark_models.py
+11. Run the application:        streamlit run app.py
+12. Run the test suite:         python -m tests.run
 ```
 
 Each step names the script, the expected artefact, and the check that confirms the step succeeded. A reader can verify the pipeline without reading the source.
 
-### 13.3 The clean-machine verification
+**Steps 3 and 4 are the only ones that need a network, and only once.** After they are done, the test suite and the application run entirely offline. The corpus is required by the `data` tier only; the `fast` and `slow` tiers do not need it.
+
+### 13.3 What the test suite needs
+
+| Requirement | Needed by |
+|---|---|
+| `torch`, `transformers`, `Pillow`, `numpy` | Every tier |
+| `pandas` | The `data` tier |
+| `pytest` | The runner |
+| The CLIP weights, in the Hugging Face cache | The `slow` tier |
+| The corpus at `dataset/ooc_dataset/` | The `data` tier |
+
+A tier whose requirement is absent skips with a stated reason. The suite is therefore runnable on a machine with none of them, and it reports the skips rather than hiding them.
+### 13.4 The clean-machine verification
 
 | Requirement | Detail |
 |---|---|
@@ -576,7 +692,7 @@ Each step names the script, the expected artefact, and the check that confirms t
 | Networking | **Disabled after phase 1**, and the fact recorded. Running on a machine that happens to have cached models is weaker evidence |
 | Recorded | The platform, the phases completed, and the result |
 
-### 13.4 The repository actions
+### 13.5 The repository actions
 
 | Action | Detail | Owner |
 |---|---|---|
@@ -608,7 +724,8 @@ Each row is completed with measured values during implementation. **No placehold
 | Text embedder | `sentence-transformers/all-MiniLM-L6-v2` | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Mandatory on first use | Evaluation, inference | PLANNED |
 | Reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Optional | Evaluation, inference | PLANNED |
 | Local generation model | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Mandatory | Inference | PLANNED |
-| NewsCLIPpings | `g-luo/news_clippings` | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Recorded in the terms record of Document 02 | Manual, with the rights check | Training, evaluation | PLANNED |
+| Curated corpus | `dataset/ooc_dataset/` | Content hash of the three CSVs and `stats.json` | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Research use only; not redistributable | Manual, group-shared; extract once | Training, evaluation | PLANNED |
+| Upstream labels | `g-luo/news-clippings`, `merged_balanced` | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Manual, once, into the corpus | Training, evaluation | PLANNED |
 | Evidence corpus | Local, per-source | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Per-source terms, Document 06 §6 | Manual | Evaluation, inference | PLANNED |
 | Classifier artifact | Our own release | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | **[PLANNED - NOT YET MEASURED]** | Our own | Manual | Inference | PLANNED |
 
@@ -751,7 +868,9 @@ Every row starts at `NOT YET RUN`. No value may be entered that was not produced
 | UD-03 | **`FAILED` reachability.** `OK / UNAVAILABLE / SKIPPED / FAILED` is the shared status vocabulary, but the assessment and evidence sections may have no reachable `FAILED` state | **Requires confirmation** | Document 04 §11, Document 05 §2.2, Document 06 §31, this document §7 |
 | UD-04 | Whether the **copy.json schema** is canonically owned by the checkpoint document or the inference document | Resolved in this consolidation: the schema and the fallback are canonical in **Document 04 §24**; Document 03 retains the packaging requirement and points to it | Document 03 §19, Document 04 §24 |
 | UD-05 | The **documentation path** in Document `00` §11.1 (`docs/`, `notebooks/`) versus the repository (`doc/`, `notebools/`). Document `00` is unchanged | Recorded, not resolved | This document §13.4 |
-| UD-06 | The **root `README.md`** does not point at the documentation. Updating it is outside `doc/` | Recorded | This document §13.4 |
+| UD-06 | The **root `README.md`** does not point at the documentation. Updating it is outside `doc/` | Recorded | This document §13.5 |
+| UD-07 | **Parity diagnostic scope.** The reference features cannot be compared on the image path, because the corpus photographs were re-encoded at 256 px while the reference used original-resolution files. The text path remains comparable, and a golden-vector regression is added as the primary offline check on both modalities | Resolved in this consolidation: the text path only, with the image path **excluded with its stated reason**, and the golden-vector regression covering the image path offline | Document 01 §12.8, §15.5 |
+| UD-08 | **The `tests/` layout.** Document 00 §11 lists a flat `tests/` sketch (`test_input_pipeline.py`, `test_clip_encoder.py`, and so on). The suite instead mirrors `src/` — one folder per component, one file per module — because the flat sketch cannot distinguish `test_pipeline.py` from `test_feature_pipeline.py`, and because 21 more test files are already planned | Resolved in this consolidation: the suite mirrors `src/`, the folder rule is stated in this document §2.6, and document 00 is left untouched because it is byte-frozen | This document §2.6, §12.3 |
 
 ---
 

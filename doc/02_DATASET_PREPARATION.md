@@ -102,65 +102,98 @@ M4FC is most relevant to the evidence-oriented part of the project, which docume
 
 ### 4.1 Source
 
+The project uses a **curated subset** of NewsCLIPpings, not the upstream release directly. The subset carries the upstream labels and fills in the caption text and photographs from VisualNews, so the rows are usable without a separate image corpus.
+
 | Property | Value |
 |---|---|
-| Repository | `https://github.com/g-luo/news_clippings` |
+| Local path | `dataset/ooc_dataset/` (gitignored) |
+| Label source | `https://huggingface.co/datasets/g-luo/news-clippings`, the `merged_balanced` split only |
+| Text and photo source | VisualNews `data.json` - `https://github.com/FuxiaoLiu/VisualNews-Repository` |
 | Paper | *NewsCLIPpings: Automatic Generation of Out-of-Context Multimodal Media* (EMNLP 2021) |
-| Image dependency | VisualNews — `https://github.com/FuxiaoLiu/VisualNews-Repository` |
-| Local storage | `data/raw/newsclippings/` (gitignored) |
-| Manifest storage | `data/manifests/<configuration>/` |
-| Feature cache | `data/processed/features/<configuration>/…` (gitignored) |
+| Manifest storage | `data/manifests/<configuration>/` (gitignored) |
+| Feature cache | `data/processed/features/<dataset_slug>/<model_slug>/<revision>/<extractor_version>/<split>/` (gitignored) |
 
-The exact release, tag, or commit used is recorded in the reproducibility record (§17) together with the access date.
+#### Contents
+
+| File | Content |
+|---|---|
+| `train.csv` | 25,000 rows - 12,500 pairs |
+| `val.csv` | 7,024 rows - 3,512 pairs |
+| `test.csv` | 7,264 rows - 3,632 pairs |
+| `labels.json` | What `0` and `1` mean, and the rule that produced them |
+| `stats.json` | Row counts, label counts, average caption length, and the construction settings |
+| `images/` | 35,789 photographs, shorter side resized to 256 px, JPEG |
+
+#### How it was built
+
+1. The labels come from the upstream `merged_balanced` split, which mixes every way the mismatches were generated and has equal real and fake pairs. The upstream split carries identifiers only.
+2. The caption text and the photo paths are joined in from VisualNews `data.json`.
+3. Train is 12,500 pairs drawn at random with **seed 42**. Val and test are not subsampled.
+4. The photographs live inside a 98 GB archive, so only the 35,789 that are referenced were pulled.
+5. The photographs were resized to a shorter side of 256 px at JPEG quality 90. Any pair with a missing photograph or an empty caption was dropped.
+
+#### The version identity
+
+The subset has no upstream release tag of its own, so its version identity is **the three CSVs plus `stats.json`**, hashed. The hash is recorded in every manifest and in the feature cache metadata, so a changed corpus invalidates every derived artefact automatically.
 
 ### 4.2 Storage rules
-
-- `data/raw/` and `data/processed/` are already excluded by `.gitignore`.
-- No dataset dump, image collection, or annotation file is committed.
-- No dataset content is placed in a release artifact or shared folder.
-- A `.gitkeep` plus a `README.md` in `data/manifests/` documents the layout for anyone cloning the repository.
-
-### 4.3 Rights and redistribution
-
-A public repository does not imply that the underlying images and articles can be redistributed. VisualNews content originates from news outlets, and the images carry the rights of those sources.
-
-Before any download, the following are checked and recorded:
-
-| Check | Recorded as |
-|---|---|
-| Repository license | The stated license text and where it was found |
-| Image provenance and terms | Whether the images are redistributable |
-| Permitted use | Whether use is limited to research or local study |
-| Access requirements | Whether registration, institutional email, or a form is needed |
-
-If the terms prohibit redistribution, the data stays local and only the **manifests and derived feature caches** are discussed as project artifacts — and those are also reviewed before being shared, because a manifest with captions and image hashes is a derived artifact of the dataset.
-
----
-
 ## 5. Label verification gate
 
 **No label mapping is implemented until this section's verification report exists.**
 
-The mapping proposed in §6 is a hypothesis. The annotations in the specific release being used are inspected first, because the field name, the value domain, and the semantics have to be confirmed against those files rather than against a paper or a README that may describe a different release.
+The subset in §4 already ships a computed `label` column, so the gate is no longer about discovering the field name. It is about **confirming that the shipped column is what it claims to be**, against the files themselves. A plausible label column that is wrong in some way nobody notices is still the most damaging failure mode in this project, and a shipped column is not evidence of correctness.
 
-### 5.1 What the verification answers
+### 5.1 The checks
 
-| # | Question | Why it is required |
+| # | Check | What it establishes |
 |---|---|---|
-| 1 | What are the exact field names present in these annotation files? | The label column may differ between releases or file types |
-| 2 | What values does the falsification field actually take? | Boolean, string, integer, or multi-valued |
-| 3 | What does a record with the flag set look like in practice? | Confirms the flag matches the intended semantics |
-| 4 | Does a separate manipulation or perturbation-type field exist? | The dataset may distinguish more than a binary flag |
-| 5 | Is the flag per record, or per image with multiple caption variants? | Determines whether grouping is by record or by image |
-| 6 | Are there records where the flag is absent, null, or contradictory? | Defines exactly where `UNKNOWN` applies |
-| 7 | Are duplicate records present across the provided files? | Affects both counting and split construction |
-| 8 | Do the provided split files cover every annotation record? | Determines how the official configuration is assembled |
+| 1 | The CSV schema is exactly `image_path`, `caption`, `label`, `caption_id`, `image_id` | The rows are what the rest of this document assumes |
+| 2 | `labels.json` states a rule, and the observed values agree with it | The label column means what the file says it means |
+| 3 | Every split is **exactly** 50% `label` 0 and 50% `label` 1 | The balance is as documented, not approximately so |
+| 4 | Every `caption_id` forms **exactly one pair**: two rows, one of each label | The pair structure is intact and the split is not cutting a pair |
+| 5 | On every `label` 0 row, `caption_id == image_id` | The consistent rows really are the caption's own photograph |
+| 6 | `caption_id` values are **disjoint across the three splits** | No caption is seen in two splits |
+| 7 | `image_id` values are **disjoint across the three splits** | No photograph is seen in two splits |
+| 8 | Every referenced `image_path` exists on disk | No row points at a missing file |
+| 9 | Each `caption_id` has exactly one caption text, and each `image_id` exactly one `image_path` | The per-row hashes are well defined and stable |
+| 10 | The photographs have a shorter side of 256 px | The pre-resize of §8.4 is present and recorded |
+| 11 | The captions fit inside the CLIP context window | No caption needs truncation, so the corpus does not exercise that path |
 
 ### 5.2 Verification method
 
-The check runs as a reproducible script, `scripts/audit_dataset_labels.py`, over the downloaded files. It produces:
+The check runs as a reproducible script, `scripts/audit_dataset.py`, over the local dataset. It produces:
 
 | Output | Content |
+|---|---|
+| Schema report | The columns present, their types, and a sample of observed values |
+| Label report | The value distribution, the `labels.json` rule, and whether the two agree |
+| Balance report | Counts per class, per split, and overall |
+| Pair report | The pair structure, and the label agreement within each pair |
+| Split report | The overlap counts for both `caption_id` and `image_id`, per pair of splits |
+| Integrity report | Missing files, and the one-text-per-id and one-path-per-id checks |
+| Geometry report | The shorter-side distribution and the caption length distribution |
+| Ceiling report | The shortcut ceilings of §X |
+| Verdict | The gate's outcome, and the count of any rows quarantined |
+
+The script is deterministic and re-runnable. It writes `reports/dataset_audit.json` and **fails loudly** when a check fails, so a corrupt or substituted corpus cannot be used unnoticed.
+
+### 5.3 The gate
+
+| Condition | Action |
+|---|---|
+| Every check passes | Proceed to implement the mapping in §6 |
+| The schema differs from the expected one | Update §6.2 to the observed schema; do not force the expectation |
+| The class balance is not exactly 50/50 | Record the observed counts, and state whether the imbalance is a property of the corpus or of a corruption |
+| A `caption_id` does not form a clean pair | Report it, quarantine the affected rows, and state the count |
+| The splits overlap | Report the overlap. The official split is never silently repaired - see §9.2 |
+| A referenced file is missing | Quarantine the row, keep it in the manifest with its flag set, and report the count |
+| A `caption_id` or `image_id` maps to two different texts or paths | Report it as an integrity failure and stop; the manifest's per-row hashes are not well defined without it |
+
+### 5.4 Why this gate still exists
+
+The upstream `merged_balanced` labels were re-sourced, re-joined against VisualNews, and re-split. That is exactly the kind of pipeline in which a column can be correct in principle and wrong in practice. The gate makes that failure mode visible before any metric is computed, and it costs one script.
+
+---
 |---|---|
 | Field inventory | Every field name with its type and a sample of observed values |
 | Value distribution | Count per distinct value of the falsification field |
@@ -215,41 +248,41 @@ class Label(str, Enum):
 
 ### 6.2 Mapping table
 
-Filled in from the §5 report. The shape of the table is fixed; the values are observed:
+The source column is the subset's `label` column. The `labels.json` file states the rule directly - `falsified False -> 0, falsified True -> 1` - and §5's gate confirms that the observed values agree with it.
 
 | Source field | Source value | Project label | Rationale |
 |---|---|---|---|
-| `<verified falsification field>` | `<observed true value>` | `MISMATCHED` | Verified in §5 |
-| `<verified falsification field>` | `<observed false value>` | `MATCHED` | Verified in §5 |
-| `<verified falsification field>` | `null` / absent | `UNKNOWN` | Not decidable from the annotation |
-| `<verified falsification field>` | unrecognised value | `UNKNOWN` | Conservative; counted and reported |
+| `label` | `0` | `MATCHED` | `labels.json`: "consistent". The caption and the photograph belong together |
+| `label` | `1` | `MISMATCHED` | `labels.json`: "out_of_context". A real caption paired with a different real photograph |
+| `label` | absent, null, or empty | `UNKNOWN` | Not decidable from the annotation |
+| `label` | any value not listed above | `UNKNOWN` | Conservative. Counted and reported, never coerced |
 
-**One source condition maps to exactly one project label.** A source field that expresses more than a binary distinction is decomposed explicitly, with each branch justified in the table. Silent collapsing is not permitted.
+**One source condition maps to exactly one project label.** The subset carries a single derived column, so there is nothing to decompose, and the upstream perturbation-type field is not exposed in the subset. That loss is recorded in §21.
 
 ### 6.3 Source labels are always retained
 
-Every manifest record keeps the original annotation fields:
+Every manifest record keeps the original annotation fields, so a project label can always be re-derived and a source-class result reported separately.
 
 | Field | Purpose |
 |---|---|
-| `source_label` | Human-readable source form, e.g. `falsified=true` |
-| `source_label_raw` | The value exactly as it appeared in the annotation file |
-| `source_extra` | Any additional verified source fields, such as a manipulation or perturbation-type flag |
+| `source_label` | The human-readable source form: `consistent` or `out_of_context` |
+| `source_label_raw` | The value exactly as it appears in the CSV: the integer `0` or `1` |
+| `source_extra` | The source-native identifiers, `caption_id` and `image_id` |
+| `caption_id` | The VisualNews identifier of the caption. It is the **pair group key** (§10) |
+| `image_id` | The VisualNews identifier of the photograph |
 
-This makes it possible to re-derive the project label if the mapping is revised, and to report source-class results separately — which is the requirement for VERITE's three classes.
+`caption_id` and `image_id` are promoted to first-class manifest fields rather than being buried in `source_extra`, because §10's grouping and §12's per-row hashes are both defined in terms of them.
 
 ### 6.4 Class balance
-
-The manifest enables class-weighting decisions later, but does not make them. Document 03 owns weighting; this document supplies the counts it needs.
 
 | Report | Content |
 |---|---|
 | Per split, per label | Record counts |
-| Overall | Record counts and ratios |
+| Overall | Counts and ratios |
 | Imbalance ratio | `max(count) / min(count)` over the decided labels |
 | `UNKNOWN` count | Reported separately, never folded into either class |
 
----
+**The corpus is exactly balanced.** Every split is 50% `MATCHED` and 50% `MISMATCHED`, so the imbalance ratio is **1.0** in every split, and the inverse-frequency class weights of document 03 §5.2 are therefore **all exactly 1.0**.
 
 ## 7. Image reference resolution
 
@@ -257,31 +290,31 @@ Every manifest record points at an image that must exist and decode.
 
 ### 7.1 Path construction
 
-Image references are resolved to a path under `data/raw/newsclippings/`, built from the source record's identifier using the layout documented by the repository. The resolution rules are recorded in the manifest builder and are part of the reproducibility record.
+The subset's `image_path` is **already relative to the dataset root**, for example `images/2ebf6acf9bcc.jpg`. The resolution rule is therefore a single join:
 
-Paths are stored **relative to the dataset root**, not absolute. A manifest containing absolute paths from one machine is broken on every other machine, which is the failure document 00 §10.5 explicitly warns against.
+```text
+resolved_path = dataset_root / record.image_path
+```
+
+where `dataset_root` is `dataset/ooc_dataset/`. No path rewriting, no id-to-filename mapping, and no directory guessing are involved.
+
+The path is stored in the manifest **relative to the dataset root**, not as an absolute path. A manifest containing absolute paths is broken on every other machine, which is the failure document `00` §10.5 explicitly warns against.
+
+| Property | Rule |
+|---|---|
+| The stored path | Relative to the dataset root, exactly as the CSV gives it |
+| The dataset root | Configuration, never hardcoded in the manifest |
+| The identity of the image | Its SHA-256, not its path. Two rows may point at the same file |
 
 ### 7.2 Validation
 
 | Check | Failure |
 |---|---|
-| File exists at the resolved path | Record quarantined, counted |
-| File decodes and passes document 04's checks | Record quarantined, counted |
-| Image is within document 04's size limits | Record quarantined, counted |
+| The file exists at the resolved path | Record quarantined, counted |
+| The file decodes and passes document 04's image checks | Record quarantined, counted |
+| The image is within document 04's size limits | Record quarantined, counted |
 
-Document 04's validation is reused, not reimplemented. A dataset image that the application would reject is excluded from training for the same reason it would be rejected at inference — otherwise the model trains on a distribution the user never produces.
-
-### 7.3 Quarantine, not deletion
-
-A record whose image cannot be resolved is:
-
-1. **Retained in the manifest**, with `flags.missing_image = true` and a `flags.quarantine_reason` string.
-2. **Excluded from feature extraction**, because there is no image to encode.
-3. **Counted and reported** per split and per configuration.
-
-Nothing is silently dropped. The quarantined count appears in the reproducibility record and in the final report, because a dataset that loses 4% of its records quietly is a dataset nobody can reason about.
-
----
+Document 04's validation is reused, not reimplemented. A corpus image that the application would reject is excluded from training for the same reason it would be rejected at inference - otherwise the model trains on a distribution the user never produces.
 
 ## 8. Preprocessing parity
 
@@ -289,10 +322,10 @@ Consistency between training and inference is the single most important property
 
 ### 8.1 Images
 
-Dataset images pass through the **same document 04 normalization** as user uploads:
+Dataset images pass through the **same** document 04 normalization as user uploads:
 
 ```text
-decode → validate → EXIF orientation → RGB conversion → alpha flattening → downscale to 2048 px
+decode → EXIF orientation → RGB conversion → alpha flattening → downscale to 2048 px
 ```
 
 then through document 01's processor:
@@ -301,6 +334,66 @@ then through document 01's processor:
 resize to 224 → center crop → tensor → mean/std normalization
 ```
 
+No separate corpus loader resizes, crops, or normalizes. If document 04's normalization is not exposed as a reusable function, it is refactored to expose it - **without changing the upload contract in `04`**.
+
+#### 8.1.1 The corpus arrives pre-resized
+
+The corpus photographs were resized by the dataset author to a shorter side of **255–256 px** and re-encoded as JPEG at quality 90, before this project saw them. The 2048 px downscale in document 04 is therefore a **no-op** on every corpus image.
+
+| Path | Chain | Difference |
+|---|---|---|
+| **Training** | 256 px shorter side → 2048 downscale (no-op) → processor 256 → 224 | Short resampling chain; JPEG-90 artefacts already baked in |
+| **Inference** | original resolution → 2048 downscale → processor 2048 → 224 | Long resampling chain; sharper source |
+
+Both paths end at the same 224×224 centre crop of the same relative field of view. They differ in the resampling chain and in the compression already applied to the corpus images.
+
+#### 8.1.2 The skew is accepted, and measured
+
+**This is accepted, not fixed.** Obtaining original-resolution photographs means the 98 GB VisualNews archive, which is not practical for this project.
+
+Accepting it is only defensible if the difference is **measured** rather than argued. The measurement is part of the test suite:
+
+| The measurement | What it records |
+|---|---|
+| The downscale is a no-op | A corpus image is unchanged by document 04's 2048 px step |
+| The native-versus-upscaled embedding similarity | The same photograph encoded at its native 256 px and upscaled to the inference resolution, compared by cosine similarity |
+| The equivalent crop region | Both variants yield the same relative 224×224 crop |
+| The inference variant | The inference path matches the documented chain exactly |
+
+The measured similarity is recorded in the dataset audit and in the final report. It is a **measurement, not a pass/fail assertion** - the specification is that the difference is small and known, and the number is what establishes that.
+
+**Measured.** Over a sample of 20 photographs drawn from the three splits, the cosine similarity between a corpus photograph at its native 255-256 px and the same photograph upscaled to the inference resolution is:
+
+| Statistic | Value |
+|---|---|
+| Mean cosine similarity | **0.9972** |
+| Minimum | **0.9937** |
+| Maximum | **0.9989** |
+| Sample size | 20 |
+
+So the accepted skew costs about **0.3%** of the embedding on average, and at worst **0.6%**. The measurement is regenerated by the test suite and written to `reports/skew_measurement.json`, so it stays honest as the encoder changes.
+
+**Why the difference is small.** Document 04 §7.4.2 records the measurement that explains it: CLIP's processor resizes the shortest side to 224 px and centre-crops, and the relative crop region is the same whether or not the image was reduced first. The 2048 px step is therefore almost invisible in the feature, and the corpus's 255-256 px pre-resize is bounded by the same effect. The measurement is still worth taking - "small" is a number here, not an argument.
+
+### 8.2 Captions
+
+Corpus captions use the same text normalization as user input: Unicode NFKC, whitespace collapsing, and the same length rules as document 04 §8.
+
+The corpus captions average 16.5 words, with a maximum of 30 words. **No corpus caption approaches the CLIP context window**, so the corpus never exercises the truncation path. That is worth stating, because it means a truncation defect would not be caught by training on this corpus alone - it would only be caught by a synthetic test, which §15 of document 01 requires.
+
+The per-row `caption_sha256` is the hash of the **normalized** caption, so it is comparable with the one computed at inference.
+
+### 8.3 What is explicitly not done
+
+| Not done | Why |
+|---|---|
+| A corpus-specific resize or crop | Creates a second preprocessing path |
+| Training-time augmentation | Document 03 owns it, and it must be consistent between training and inference |
+| Per-corpus colour handling | Document 04's ICC policy applies to every image, corpus or user |
+| Batch-level statistics | The processor's fixed mean and standard deviation are used, not corpus-derived ones |
+| Re-deriving the corpus labels | The labels are verified in §5, not recomputed |
+
+---
 No separate dataset-specific loader resizes, crops, or normalizes. If document 04 exposes its normalization as a reusable function, the dataset builder calls that function. If it does not, it is refactored to expose it — **without changing the upload contract in `04`**.
 
 The image SHA-256 recorded in the manifest is the same hash document 01's cache uses, computed from the same normalized pixels. This is what makes the per-row cache validation in `01` §11.6 meaningful.
@@ -547,22 +640,25 @@ Document 03 and the final report must include the audit's exposure fields (§11.
 ```json
 {
   "sample_id": "nclp_train_000001",
-  "dataset": "newsclippings",
-  "dataset_version": "<release tag or commit>",
-  "source_record_id": "<id in the official annotation>",
-  "source_file": "<annotation file the record came from>",
+  "dataset": "ooc-newsclippings",
+  "dataset_version": "<hash of the three CSVs and stats.json>",
+  "source_record_id": "<row index within the source split>",
+  "source_file": "train.csv",
   "configuration": "newsclippings-official-v1",
   "split": "train",
-  "image_path": "raw/newsclippings/images/<file>.jpg",
+  "image_path": "images/2ebf6acf9bcc.jpg",
   "image_sha256": "<hex of normalized pixels>",
   "caption_raw": "…",
   "caption": "<normalized by document 04>",
   "caption_sha256": "<hex of the normalized caption>",
   "label": "MISMATCHED",
-  "source_label": "falsified=true",
-  "source_label_raw": true,
+  "source_label": "out_of_context",
+  "source_label_raw": 1,
   "source_extra": {},
-  "event_id": "<grouping key>",
+  "caption_id": "93574",
+  "image_id": "243354",
+  "pair_group_id": "93574",
+  "event_id": "93574",
   "flags": {"missing_image": false, "quarantine_reason": null},
   "manifest_version": 1
 }
@@ -571,17 +667,24 @@ Document 03 and the final report must include the audit's exposure fields (§11.
 | Field | Purpose |
 |---|---|
 | `sample_id` | Stable, unique within a configuration. Used by caches and by document 03 |
-| `source_record_id` | Traceability back to the official annotation |
+| `dataset`, `dataset_version` | The corpus identity and its hash |
+| `source_record_id` | The row index within the source CSV, so any row can be traced back |
+| `source_file` | The CSV the row came from |
 | `configuration` | The configuration that produced this record |
-| `image_path` | Relative to the dataset root, so the manifest is portable across machines |
-| `image_sha256` | Hash of the normalized pixels — the same hash the feature cache validates against |
-| `caption` | Normalized caption, as the classifier and retriever will see it |
+| `image_path` | Relative to the dataset root, exactly as the CSV gives it (§7.1) |
+| `image_sha256` | Hash of the normalized pixels - the same hash the feature cache validates against |
+| `caption` | The normalized caption, as the classifier and the retriever will see it |
 | `caption_sha256` | Hash of the normalized caption |
 | `label` | The project label |
-| `source_label`, `source_label_raw`, `source_extra` | Original annotation, always retained |
-| `event_id` | The grouping key this record belongs to |
+| `source_label`, `source_label_raw`, `source_extra` | Original annotation, always retained (§6.3) |
+| `caption_id` | The source-native caption identifier. It is the **pair group key** |
+| `image_id` | The source-native photograph identifier |
+| `pair_group_id` | The pair this row belongs to. Equal to its `caption_id` |
+| `event_id` | The grouping key this record belongs to. Equal to its `pair_group_id` for this corpus |
 | `flags` | Quarantine and other per-record state |
+| `manifest_version` | The manifest schema version |
 
+**Why the pair group and the event are the same thing here.** The upstream corpus pairs each caption with exactly one photograph, so `caption_id` **is** the event identifier for this dataset. `pair_group_id` and `event_id` are kept as separate fields because the grouped configuration in §10 groups on both image and caption-source links, and a future corpus may separate them. On this corpus they coincide, and §10 says so rather than leaving a reader to assume it.
 ### 12.3 Storage layout
 
 ```text
@@ -604,6 +707,7 @@ data/manifests/
         manifest_meta.json
 ```
 
+**`data/manifests/` is excluded by `.gitignore`**, with `data/manifests/README.md` as the only tracked file beneath it. The manifests contain dataset captions, so they inherit the corpus's redistribution restriction (§4.3) even though they contain no pixels.
 ### 12.4 `manifest_meta.json`
 
 Written alongside the split files, recording everything needed to reproduce them:
@@ -661,11 +765,14 @@ Regenerating a manifest from unchanged inputs must produce byte-identical output
 | `caption` equals the normalization of `caption_raw` | Reject |
 | `caption_sha256` matches `caption` | Reject |
 | `image_sha256` matches the referenced image's normalized pixels | Reject |
+| `caption_id` and `image_id` are present and non-empty | Reject |
+| `pair_group_id` equals the record's `caption_id` | Reject |
+| `caption_id` appears exactly twice in its split, with one row of each label | Reject the split |
 | `configuration` matches the directory | Reject |
 
 The caption checks make the manifest self-verifying: if the normalization in document 04 changes without a version bump, the manifest fails to load rather than silently mixing normalization states.
 
----
+The identifier checks are what make the manifest usable for training at all. They enforce the pair structure of §5 directly on the artefact, so a manifest that was built from a corrupted or substituted corpus is rejected at load rather than at training time.
 
 ## 13. Class balance and metadata
 
@@ -680,7 +787,30 @@ The manifest supports the analysis document 03 needs, without making the decisio
 | Quarantined | Count per split, with reasons |
 | Sub-sampling feasibility | Whether each class has enough records for the dev configuration |
 
+**The corpus is exactly balanced** (§6.4), so the imbalance ratio is 1.0 in every split and the inverse-frequency weights of document 03 §5.2 are all exactly 1.0. The sub-sampling feasibility check is therefore always satisfied.
+
 The imbalance ratio matters for more than reporting. If one class has a very small count, the grouped split may not be able to place that class across three splits at all, which interacts with §10.6's decision rules and is recorded in the feasibility report.
+
+### 13.1 How much information the label carries
+
+The corpus has a structure that makes the strength of any classifier measurable **in advance**, rather than only after the fact. Two shortcut ceilings follow from it, and both are computed by `scripts/audit_dataset.py` and recorded in the dataset audit.
+
+| Probe | Ceiling | Why |
+|---|---|---|
+| **Caption only** | **Exactly 50%** | Every `caption_id` appears in **two** rows, one of each label. The caption is therefore identical for a matched and a mismatched pair, and carries **no** information about the label. Verified in §5: no `caption_id` has a group size other than two, and no group has two rows of the same label |
+| **Image only, within a split** | **94.8%** on train, 84.6% on val and test | A predictor that memorises which photographs it has seen can do this well. On train, 11,199 photographs appear only with label 0 and 11,199 only with label 1, while 1,301 appear with both labels. Predicting the observed label for the unambiguous photographs and either label for the rest scores `(11,199 + 11,199 + 1,301) / 25,000` |
+| **Image only, across splits** | **Approximately 50%** | The photographs are disjoint across splits, and the marginal label distribution of photographs is balanced by construction, so nothing generalises from the training photographs to the test photographs |
+
+#### What this means for the evaluation
+
+| Consequence | Statement |
+|---|---|
+| The task genuinely requires matching | The caption alone is provably uninformative, so a model scoring well is doing image–caption matching rather than reading the answer off the text |
+| **Training accuracy is not informative** | A model that memorised training photographs would reach 94.8% without understanding anything. Only val and test accuracy is meaningful |
+| The image-only probe needs a number to read against | Document 03 §12.3's probe is not just a diagnostic here - it is measured against a known 94.8% ceiling, so an image-only score near 85% is a memorisation artefact rather than a semantic result |
+| A constant predictor scores 50% | Accuracy alone is uninformative on a balanced corpus, so document 03's metric set is reported in full |
+
+The ceilings are properties of the corpus, not of the model, and they hold for any classifier trained on it. They are recorded here so that a later reader can interpret the classifier's numbers correctly rather than mistaking a memorisation artefact for a result.
 
 ---
 
@@ -700,10 +830,10 @@ The reason is a training/inference consistency guarantee. A classifier trained o
 ### 14.2 Cache layout
 
 ```text
-data/processed/features/<configuration>/<model_slug>/<revision>/<extractor_version>/<split>/
+data/processed/features/<dataset_slug>/<model_slug>/<revision>/<extractor_version>/<split>/
 ```
 
-The configuration is part of the path, so the official and grouped configurations can never share a cache directory by accident.
+The configuration is not in the path, because the **features do not depend on the configuration** - the same photograph and caption produce the same vector whichever split they were assigned to. The dataset slug and the extractor version are, so features from a different corpus or a different encoder can never share a cache directory by accident. The configuration is recorded in the cache metadata, and the manifest hash in the cache key (§11.3) ties the cache to the exact rows it was built from.
 
 ### 14.3 Process
 
@@ -711,10 +841,15 @@ The configuration is part of the path, so the official and grouped configuration
 2. For each record with a usable image, load the image and apply document 04's normalization.
 3. Batch the normalized images and call document 01's `encode_images`.
 4. Separately call `encode_texts` on the normalized captions.
-5. Write the cache with document 01's atomic procedure, populating the per-row `image_sha256` and `caption_sha256` files from the manifest.
+5. Write the cache with document 01's atomic procedure, populating the per-row `image_sha256` and `caption_hashes` files from the manifest, **and the `caption_id` and `image_id` arrays**.
 
-Because the manifest's hashes are exactly what document 01 §11.6 validates, a cache is provably built for that manifest's records.
+**The cache is written in manifest row order, which is the source CSV's row order.** The order is therefore deterministic and the rows line up with the CSVs by construction, without a join. `caption_id` and `image_id` are stored alongside the vectors precisely so that alignment is checkable rather than assumed.
 
+Because the manifest's hashes are exactly what document 01 §11.6 validates, a cache is provably built for that manifest's records. Because the identifiers are stored, a reader can confirm the alignment without recomputing anything.
+
+**The corpus's CSVs are in pair order**, with a matched row immediately followed by its mismatched row. The cache preserves that order for reproducibility; **the training sampler shuffles** it, with the seed recorded in document 03 §6.4. Shuffling belongs to the sampler, not to the feature store, so the features stay aligned with the CSVs.
+
+---
 ### 14.4 Quarantined records
 
 Records with `flags.missing_image = true` have no image to encode and are not written to the cache. The cache's `row_count` is the number of encodable records, and the manifest's quarantined count is reported in the metadata so the two can be reconciled.
@@ -809,14 +944,17 @@ Real-world claims with real-world evidence, and a bridge between the classifier 
 
 ## 17. Reproducibility record
 
-Document 00 §5.2 sets the minimum record. This document satisfies it and adds the three audit artifacts.
+Document 00 §5.2 sets the minimum record. This document satisfies it and adds the audit artefacts.
 
 | Item | Source |
 |---|---|
-| Dataset name | `newsclippings` |
-| Dataset version | Release tag or commit, recorded in `manifest_meta.json` |
-| Source URL | `https://github.com/g-luo/news_clippings` |
+| Dataset name | `ooc-newsclippings` |
+| Dataset version | The SHA-256 of the three CSVs and `stats.json`, recorded in `manifest_meta.json` |
+| Local path | `dataset/ooc_dataset/` |
+| Label source | `https://huggingface.co/datasets/g-luo/news-clippings`, the `merged_balanced` split |
+| Text and photo source | VisualNews `data.json` |
 | Access date | `accessed_at` |
+| Corpus construction | The upstream `merged_balanced` labels joined to VisualNews text and photographs; train subsampled to 12,500 pairs at **seed 42**; val and test not subsampled; photographs resized to a 256 px shorter side at JPEG quality 90 |
 | Exact split-generation method | `split_strategy`, `grouping`, `target_ratios` |
 | Random seed | 42 for every configuration we generate |
 | CLIP model identifier and preprocessing | Carried from document 01 in the feature cache metadata |
@@ -824,13 +962,13 @@ Document 00 §5.2 sets the minimum record. This document satisfies it and adds t
 | Label verification report | `audit_reports.labels` |
 | Grouping feasibility report | `audit_reports.groups` |
 | Leakage audit report | `audit_reports.leakage` |
+| Shortcut ceilings | `audit_reports.ceilings` |
 | Quarantined record counts | `quarantined` |
-| Known limitations | This document, §19 |
+| Known limitations | This document, §21 |
 
-The record is reproducible: given the same dataset release, the same code, and the same recorded parameters, the manifests regenerate byte-identically.
+The record is reproducible: given the same corpus, the same code, and the same recorded parameters, the manifests regenerate byte-identically. The corpus itself is identified by content hash rather than by a release tag, so a substituted or modified corpus is detected rather than silently used.
 
 ---
-
 ## 18. Testing strategy
 
 ### 18.1 Test tiers and commands
@@ -906,12 +1044,14 @@ src/datasets/
 
 ```text
 scripts/
-├── audit_dataset_labels.py    # §5 label verification report
-├── audit_leakage_groups.py    # §10 feasibility report
-├── audit_leakage.py           # §11 leakage audit report
-├── prepare_dataset.py         # validate → map → split → write manifests
-└── extract_features.py        # manifest → feature cache
+├── audit_dataset.py             # §5 label gate, split structure, and the §13.1 ceilings
+├── audit_leakage_groups.py      # §10 feasibility report
+├── audit_leakage.py             # §11 leakage audit report
+├── prepare_dataset.py           # validate → map → split → write manifests
+└── extract_features.py          # manifest → feature cache
 ```
+
+`scripts/audit_dataset.py` exists today. It runs the checks of §5 against the local corpus, verifies the split structure, computes the shortcut ceilings of §13.1, writes `reports/dataset_audit.json`, and exits non-zero when a check fails, so a corrupt or substituted corpus cannot be used unnoticed.
 
 All scripts are re-runnable and deterministic, and accept `--config` and `--output` arguments so results are written to a known location rather than wherever the run happened to be.
 

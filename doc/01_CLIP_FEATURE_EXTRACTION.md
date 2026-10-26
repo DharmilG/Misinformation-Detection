@@ -254,9 +254,26 @@ Padding to `max_length=77` rather than `"longest"` is deliberate. The CLIP text 
 
 **No prompt templates are applied.** The caption is encoded as written. Prompt engineering belongs to a zero-shot approach, which is out of scope.
 
-### 5.3 Image–text alignment guarantee
+### 5.3 Image-text alignment guarantee
 
 Image and text encoders are independently testable, but they must be executed with the same model instance, the same revision, and the same device. A pair is only meaningful when both vectors come from one consistent configuration. `encode_batch` enforces this by construction.
+
+### 5.4 Interaction with a pre-resized corpus
+
+The evaluation corpus described in document 02 is **not** delivered at original resolution. Its photographs were resized by the dataset author to a shorter side of 255-256 pixels and re-encoded as JPEG at quality 90, before this project ever saw them.
+
+This has one concrete consequence for the preprocessing chain, and it is recorded here rather than left to be discovered.
+
+| Path | Chain | Effect |
+|---|---|---|
+| **Training** (corpus image) | 255-256 px shorter side → document 04's 2048 px downscale is a **no-op** → processor 256 → 224 | The crop region is correct; the resampling chain is short |
+| **Inference** (user upload) | original resolution → document 04's 2048 px downscale → processor 2048 → 224 | The crop region is the same relative region; the resampling chain is long and the source is sharper |
+
+The two paths end at the same 224×224 centre crop of the same relative field of view. They differ in the resampling chain and in the JPEG artefacts already baked into the corpus images.
+
+**This is accepted, not fixed.** Obtaining original-resolution photographs means the 98 GB VisualNews archive, which is not practical for this project. The difference is small, it is symmetric, and it is **measured** rather than asserted: document 02 §8.1.2 records the measured embedding difference between a corpus image at its native size and the same image upsampled to the inference resolution - a mean cosine similarity of **0.9972** over a 20-image sample, with a minimum of **0.9937**.
+
+**Verification.** A `data`-tier test asserts that document 04's 2048 px downscale leaves a corpus image unchanged, and another measures the embedding difference between the native and upscaled forms of the same photograph.
 
 ---
 
@@ -417,6 +434,10 @@ vector = vector / np.linalg.norm(vector, axis=-1, keepdims=True)
 
 CLIP's own `forward` method normalizes internally for the contrastive loss, but `get_image_features` / `get_text_features` do **not** guarantee normalized output. Whether the installed `transformers` version returns already-normalized vectors is **verified rather than assumed**.
 
+**Measured.** With `transformers` 5.x, `CLIPModel.forward` already returns L2-normalised `image_embeds` and `text_embeds`: the raw projection has a norm of about 7.86, and the returned tensor has a norm of exactly 1.0. The explicit normalization above is therefore **idempotent on this library version** - it changes nothing, because normalizing a unit vector again returns the same vector.
+
+That is a fact about the library, not a licence to drop the step. The explicit normalization is kept because it makes the contract independent of the library version, and because it is what the cache metadata's `normalized` flag describes. Two tests assert both facts: that the returned vectors are unit-norm to within 1e-6, and that normalizing them twice changes nothing.
+
 The encoder performs a one-time check at load time on a synthetic probe:
 
 1. Extract a probe image vector and a probe text vector.
@@ -547,15 +568,16 @@ Dataset features are cached so that classifier training and every re-run of an e
 
 ```text
 data/processed/features/
-    <model_slug>/
-        <revision>/
-            <extractor_version>/
-                <split_name>/
-                    image_embeddings.npy        # (N, 512) float32
-                    text_embeddings.npy         # (N, 512) float32
-                    ids.json                    # stable sample IDs, order matters
-                    image_hashes.json           # per-row SHA-256 of the source image
-                    caption_hashes.json         # per-row SHA-256 of the normalized caption
+    <dataset_slug>/
+        <model_slug>/
+            <revision>/
+                <extractor_version>/
+                    <split_name>/
+                        image_embeddings.npy        # (N, 512) float32
+                        text_embeddings.npy         # (N, 512) float32
+                        ids.json                    # stable sample IDs, order matters
+                        image_hashes.json           # per-row SHA-256 of the source image
+                        caption_hashes.json         # per-row SHA-256 of the normalized caption
                     metadata.json               # written LAST
 ```
 
@@ -569,6 +591,7 @@ The cache is valid for a given set of inputs only if every input that can change
 |---|---|---|
 | `image_sha256` | Per row, from document 04 | Content hash of the normalized source image |
 | `caption_sha256` | Per row, SHA-256 of the **normalized** caption | Raw caption would miss normalization changes |
+| `source_manifest_sha256` | Document 02 | A changed manifest means different rows, even if every individual row still hashes the same |
 | `model_id` | `constants.py` | Different checkpoint, different features |
 | `model_revision` | `constants.py` | Same model at a different revision differs |
 | `preprocessing_version` | Document 04 | Change in EXIF/RGB/downscale behaviour alters pixels |
@@ -577,6 +600,9 @@ The cache is valid for a given set of inputs only if every input that can change
 | `normalized` | `True` | Normalized and unnormalized vectors are not interchangeable |
 | `tokenizer_max_length` | `77` | Truncation length changes the text vector |
 | `library_versions` | `transformers`, `torch`, `numpy`, `pillow` | Different library versions can change outputs |
+| `encoder_file_manifest` | §4.5 | A replaced weight file produces different vectors under the same revision |
+
+**Device is not part of the key by default**, so a cache is shareable across machines. The cross-device difference is bounded and measured in §14.3, and the `device_namespace` flag in §11.7 segregates caches by device when strict reproducibility is required.
 
 **Device is not part of the key by default.** See §11.7.
 
@@ -747,6 +773,25 @@ This decision is recorded here so that a later reader does not assume the refere
 
 The diagnostic produces a report containing the preconditions, their verification results, all metrics from §12.3, the pass/fail outcome against §12.4, and the investigation notes if it failed. The report is stored under `data/processed/` and excluded from Git.
 
+### 12.8 Outcome for the curated corpus
+
+The corpus in document 02 is a **derived** subset of the upstream NewsCLIPpings release. Its labels come from the upstream `merged_balanced` split, but its caption text and photographs were re-sourced from VisualNews and **re-encoded at 256 px shorter side**. That single fact decides what the parity diagnostic can and cannot check.
+
+| Modality | Comparable with the reference features? | Reason |
+|---|---|---|
+| **Text** | **Yes** | The caption text is the upstream VisualNews text, unmodified. The tokenizer and the text encoder see the same input. |
+| **Image** | **No** | The reference features were computed on original-resolution photographs. The corpus photographs are 255-256 px re-encodes, so the pixels are not the same even where the scene is. |
+
+The image path therefore **fails for an explainable reason**, and §12.5's investigation order reaches that conclusion before any implementation defect is suspected. The diagnostic must record the exclusion and its reason rather than reporting a large image-path difference as a parity failure.
+
+| Consequence | Handling |
+|---|---|
+| The text path remains a valid independent check | It confirms the tokenizer, the EOT pooling, the projection, and the normalisation |
+| The image path cannot validate the image preprocessing | §5.4 records the corpus resolution instead, and §15 records the golden-vector regression that covers the image path offline |
+| The §12.6 decision record is unaffected | The final model uses this project's own extractor regardless of the outcome |
+
+**Verification.** An `optional`-tier test asserts that the image path is **excluded with its stated reason**, rather than silently skipped, so the exclusion is visible in the report.
+
 ---
 
 ## 13. Error handling
@@ -832,9 +877,21 @@ The tests listed in the remaining subsections of this section are this component
 
 ```bash
 # This component's fast suite
-pytest -m "not slow and not eval and not benchmark and not e2e"
+pytest -m "not slow and not data and not eval and not benchmark and not e2e"
 ```
-### 15.2 Fast tests
+
+### 15.2 The two styles of test
+
+The suite distinguishes two kinds of assertion, and the distinction is deliberate.
+
+| Style | What it asserts | Typical outcome |
+|---|---|---|
+| **Behavioural conformance** | The API that exists today satisfies the behavioural clauses | Mostly **passes**. It is the real baseline |
+| **Interface conformance** | The API surface, the cache contract, the error contract, and the dataset pipeline exist as specified | **Fails** until the implementation is extended. Each failure names the clause and the required change |
+
+A uniformly red suite would hide the fact that the projection, the pooling, the shapes, the dtype, and the finiteness are already correct. A uniformly green suite would hide the gaps. The split keeps both visible.
+
+### 15.3 Fast tests
 
 - Schema construction and field presence.
 - `EncoderInfo` provenance fields are populated.
@@ -845,8 +902,10 @@ pytest -m "not slow and not eval and not benchmark and not e2e"
 - Device resolution logic with mocked `torch.cuda.is_available` / `torch.backends.mps.is_available`.
 - Error types are raised for the right conditions with mocked loaders.
 - Token counting logic against a stub tokenizer implementing the same interface, including the BOS/EOT convention.
+- The public API surface required by §7.1 is present: `encode_pair`, `encode_images`, `encode_texts`, `encode_batch`.
+- The model revision is pinned, and the encoder reports its own provenance.
 
-### 15.3 Slow tests
+### 15.4 Slow tests
 
 - Model loads, is in `eval()` mode, and reports the expected `projection_dim`.
 - `encode_pair` returns finite, unit-norm, float32 vectors of shape `(512,)`.
@@ -854,16 +913,31 @@ pytest -m "not slow and not eval and not benchmark and not e2e"
 - Normalization behaviour: raw norms are recorded, normalized norms are within 1e-6 of 1.0, and double normalization is a no-op.
 - Pooling: `get_text_features` matches the manual EOT-position projection within 1e-5.
 - Token counting against the real tokenizer: BOS and EOT included, `max_length` 77, truncation flag correct for a caption that exceeds the window.
+- A caption beyond the window is **truncated**, not rejected by a position-embedding error.
 - Repeatability: the same input twice gives bit-identical output on CPU.
 - Batch-size invariance: batch-1 and batch-32 results agree within 1e-5.
 - **Offline loading with a complete cache** succeeds with `local_files_only=True` and makes no network call.
 - **Offline loading with an empty cache** raises `ModelUnavailableError` with an actionable message.
 - **First-run with network** downloads and loads; skipped automatically when the environment is offline.
 - A missing model never yields a fabricated vector.
+- The weights are loaded once per process, not once per instance.
+- The device can be selected, and an unavailable device raises rather than falling back silently.
 
-### 15.4 Parity tests
+### 15.5 Golden-vector regression
 
-Run only when the NewsCLIPpings reference features are present locally. See §12.
+A recorded set of image and caption pairs with their expected vectors, checked against the current build within the tolerance of §14.3.
+
+This is the **primary, always-available, offline** check on the encoder chain. The parity diagnostic in §12 needs a download and covers the text path only; the golden vectors need neither and cover both modalities. They detect any change in the processor, the tokenizer, the pooling, the projection, or the normalisation.
+
+### 15.6 Dataset-tier tests
+
+The corpus-facing tests are specified in document 02 and execute under the `data` marker, which requires the dataset but **not** the model weights. They verify the label gate, the split structure, the leakage properties, the manifest contract, and the shortcut ceilings of document 02 §X.
+
+The preprocessing-skew measurement of §5.4 and the dataset-scale extraction of document 02 §14 require both the dataset and the weights, and are marked `data` and `slow` together.
+
+### 15.7 Parity tests
+
+Run only when the NewsCLIPpings reference features are present locally, and only for the text path. See §12 and §12.8.
 
 ---
 
@@ -927,5 +1001,7 @@ The complete cross-component interface matrix, and the prohibitions that apply t
 ## 19. Immediate next step
 
 Implement `src/clip_model/` against this contract, beginning with the encoder and the output schema, then the cache, then the parity diagnostic. Fill in the concrete `MODEL_REVISION` commit SHA, the license text, and the weights SHA-256 during implementation, and update §4 and §14.3 in this document with the measured values.
+
+**Conformance status.** The suite in `tests/` asserts this document's clauses. Its report, `reports/conformance.json`, records for each case the clause it enforces and whether the current implementation satisfies it. The gaps it lists are the requirements still to be implemented; the specification in this document is unchanged by them.
 
 The next specification after this one is `02_DATASET_PREPARATION.md`.

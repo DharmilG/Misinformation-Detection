@@ -580,8 +580,8 @@ The document records this as a known limitation rather than treating the validat
 | **CLIP cosine** | Threshold on the cosine similarity, selected on validation by the §10.1 rule, then frozen | How much the learned head adds over raw CLIP similarity |
 | **Random (uniform)** | Uniform random labels, seed recorded | The chance floor |
 | **Random (training-frequency)** | Labels sampled from the training-split class frequencies, seed recorded | The chance floor under imbalance |
-| **Image-only** | Trained on `v_i` alone, identical protocol | Shortcut diagnostic |
-| **Text-only** | Trained on `v_t` alone, identical protocol | Shortcut diagnostic |
+| **Image-only** | Trained on `v_i` alone, identical protocol | Shortcut diagnostic. **Read against the corpus's 94.8% in-split memorisation ceiling** - see document 02 §13.1 |
+| **Text-only** | Trained on `v_t` alone, identical protocol | Shortcut diagnostic. **The corpus's caption-only ceiling is exactly 50%**, because every caption appears with both labels - see document 02 §13.1 |
 
 ### 13.2 The CLIP cosine baseline is the most important row
 
@@ -1798,7 +1798,7 @@ src/clip_model/
 scripts/
 └── train_classifier.py  # Reproducible experiment entry point — orchestration only
 
-tests/
+tests/clip_model/
 ├── test_classifier.py
 ├── test_dataset.py
 ├── test_metrics.py
@@ -1822,7 +1822,7 @@ scripts/
 ├── generate_reference_fixture.py  # deterministic synthetic fixture generation
 └── verify_checkpoint.py     # the second-machine verification run
 
-tests/
+tests/clip_model/
 ├── test_checkpoint.py
 ├── test_packaging.py
 ├── test_compatibility.py

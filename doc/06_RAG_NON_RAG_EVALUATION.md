@@ -1931,7 +1931,7 @@ scripts/
 ├── evaluate_retrieval.py      # the dev selection and the held-out test reporting
 └── generate_injection_fixture.py
 
-tests/
+tests/retrieval/
 ├── test_corpus_terms.py
 ├── test_ingest_safety.py
 ├── test_chunking.py
@@ -1971,13 +1971,14 @@ scripts/
 ├── evaluate_generation.py   # the metrics and the report
 └── benchmark_models.py      # the model selection benchmark
 
-tests/
+tests/rag/
 ├── test_prompts.py
 ├── test_assembly.py
 ├── test_validation.py
 ├── test_eligibility.py
 ├── test_outcome.py
 ├── test_injection.py
+├── test_generation.py
 └── test_generation_eval.py
 ```
 
