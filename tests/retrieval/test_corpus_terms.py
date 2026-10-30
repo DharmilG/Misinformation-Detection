@@ -6,7 +6,7 @@ permissions check, and permitted storage scopes (FULL_PAGE, EXCERPT, METADATA_ON
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 TERMS_FIELDS = {
     "source_name",
@@ -27,25 +27,23 @@ def _corpus_module():
     return importlib.import_module("retrieval_corpus")
 
 
-@known_gap(
+@case(
     "corpus_terms.module_exists",
     "F2",
     "fast",
     "doc/06 §6",
     "The project provides a corpus terms and rights management module.",
-    "there is no retrieval_corpus module",
 )
 def test_corpus_terms_module_exists():
     _corpus_module()
 
 
-@known_gap(
+@case(
     "corpus_terms.terms_record_schema",
     "F2",
     "fast",
     "doc/06 §6.1",
     "Terms records define all required metadata, rights, and permission fields.",
-    "terms record schema is not implemented",
 )
 def test_terms_record_schema():
     mod = _corpus_module()
@@ -54,13 +52,12 @@ def test_terms_record_schema():
     assert not missing, "terms record missing fields: %s" % missing
 
 
-@known_gap(
+@case(
     "corpus_terms.refuse_without_terms",
     "F2",
     "fast",
     "doc/06 §6.2",
     "Ingestion layer strictly refuses any document that lacks a valid terms record.",
-    "terms requirement enforcement is not implemented",
 )
 def test_refuse_without_terms():
     mod = _corpus_module()
@@ -70,13 +67,12 @@ def test_refuse_without_terms():
     assert "Terms" in type(excinfo.value).__name__ or "terms" in str(excinfo.value).lower()
 
 
-@known_gap(
+@case(
     "corpus_terms.automated_fetch_disallowed_requires_local_import",
     "F2",
     "fast",
     "doc/06 §6.2",
     "When automated_fetch_allowed is false, the fetch path refuses and requires local file import.",
-    "automated fetch prohibition is not enforced",
 )
 def test_automated_fetch_disallowed_requires_local_import():
     mod = _corpus_module()
@@ -85,13 +81,12 @@ def test_automated_fetch_disallowed_requires_local_import():
         mod.fetch_document_online(url="https://blocked_source.com/news", terms=terms)
 
 
-@known_gap(
+@case(
     "corpus_terms.full_text_storage_disallowed_stores_excerpt",
     "F2",
     "fast",
     "doc/06 §6.2, §8.1",
     "When full_text_storage_allowed is false, only metadata or permitted excerpt is stored, never full text.",
-    "storage scope restriction is not implemented",
 )
 def test_full_text_storage_disallowed_stores_excerpt():
     mod = _corpus_module()

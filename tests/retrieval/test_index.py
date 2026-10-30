@@ -7,7 +7,7 @@ and automatic index invalidation on version mismatches (chunking, cleaning, embe
 from pathlib import Path
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 np = pytest.importorskip("numpy")
 
@@ -23,26 +23,24 @@ def _index_module():
     return importlib.import_module("retrieval_index")
 
 
-@known_gap(
+@case(
     "evidence_index.module_exists",
     "F2",
     "fast",
     "doc/06 §13",
     "The project provides an evidence index management and loading module.",
-    "there is no retrieval_index module",
     requires=("numpy",),
 )
 def test_evidence_index_module_exists():
     _index_module()
 
 
-@known_gap(
+@case(
     "evidence_index.no_pickle_in_index",
     "F2",
     "fast",
     "doc/06 §13.2",
     "The index avoids Python pickle entirely; embeddings are loaded with allow_pickle=False.",
-    "safe index loading is not implemented",
     requires=("numpy",),
 )
 def test_no_pickle_in_index(tmp_path):
@@ -54,13 +52,12 @@ def test_no_pickle_in_index(tmp_path):
     assert tuple(arr.shape) == (2, 384)
 
 
-@known_gap(
+@case(
     "evidence_index.metadata_schema",
     "F2",
     "fast",
     "doc/06 §13.3",
     "index_meta.json records required versions, models, counts, and lexical analyzer parameters.",
-    "index metadata schema is not implemented",
     requires=("numpy",),
 )
 def test_metadata_schema():
@@ -82,13 +79,12 @@ def test_metadata_schema():
     assert not missing, "index_meta.json missing keys: %s" % missing
 
 
-@known_gap(
+@case(
     "evidence_index.version_mismatch_invalidates",
     "F2",
     "fast",
     "doc/06 §13.4",
     "Mismatches in chunking, cleaning, or embedding versions invalidate the index, triggering rebuild.",
-    "index version invalidation check is not implemented",
     requires=("numpy",),
 )
 def test_version_mismatch_invalidates():

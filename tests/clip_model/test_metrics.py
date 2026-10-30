@@ -6,7 +6,7 @@ orientation (rows=true, cols=predicted), unweighted macro-F1, and continuous ROC
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _metrics_module():
@@ -14,25 +14,23 @@ def _metrics_module():
     return importlib.import_module("metrics")
 
 
-@known_gap(
+@case(
     "metrics.module_exists",
     "F2",
     "fast",
     "doc/03 §8",
     "The project provides a classifier evaluation metrics calculation module.",
-    "there is no metrics module",
 )
 def test_metrics_module_exists():
     _metrics_module()
 
 
-@known_gap(
+@case(
     "metrics.positive_class_is_mismatched",
     "F2",
     "fast",
     "doc/03 §8.1",
     "The declared positive class for all metrics and ROC curves is MISMATCHED (index 1).",
-    "the positive class is not defined",
 )
 def test_positive_class_is_mismatched():
     mod = _metrics_module()
@@ -40,13 +38,12 @@ def test_positive_class_is_mismatched():
     assert mod.POSITIVE_CLASS_INDEX == 1
 
 
-@known_gap(
+@case(
     "metrics.confusion_matrix_orientation",
     "F2",
     "fast",
     "doc/03 §8.2",
     "The confusion matrix has rows=true labels and columns=predicted labels in order [MATCHED, MISMATCHED].",
-    "confusion matrix calculation is not implemented",
 )
 def test_confusion_matrix_orientation():
     mod = _metrics_module()
@@ -58,13 +55,12 @@ def test_confusion_matrix_orientation():
     assert cm.tolist() == [[1, 1], [0, 2]], "confusion matrix is transposed or incorrectly indexed: %r" % cm
 
 
-@known_gap(
+@case(
     "metrics.macro_f1_unweighted",
     "F2",
     "fast",
     "doc/03 §8.2",
     "Macro-F1 is the unweighted arithmetic mean of the two class F1 scores.",
-    "macro-F1 computation is not implemented",
 )
 def test_macro_f1_unweighted():
     mod = _metrics_module()
@@ -73,13 +69,12 @@ def test_macro_f1_unweighted():
     assert abs(macro_f1 - 0.70) < 1e-6
 
 
-@known_gap(
+@case(
     "metrics.roc_auc_continuous_scores",
     "F2",
     "fast",
     "doc/03 §8.2",
     "ROC-AUC is computed using continuous positive-class probabilities, never hard-thresholded labels.",
-    "ROC-AUC computation is not implemented",
 )
 def test_roc_auc_continuous_scores():
     mod = _metrics_module()
@@ -89,13 +84,12 @@ def test_roc_auc_continuous_scores():
     assert abs(auc - 1.0) < 1e-5
 
 
-@known_gap(
+@case(
     "metrics.zero_division_safe",
     "F2",
     "fast",
     "doc/03 §8.2",
     "Zero-denominator cases in precision, recall, and F1 return 0.0 without raising exceptions.",
-    "zero division handling is not implemented",
 )
 def test_zero_division_safe():
     mod = _metrics_module()

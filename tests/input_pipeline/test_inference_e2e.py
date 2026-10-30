@@ -6,7 +6,7 @@ and rejection of malformed copy files missing mandatory limitation statements.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 REQUIRED_COPY_KEYS = {
     "copy_version",
@@ -22,25 +22,23 @@ def _copy_module():
     return importlib.import_module("inference_copy")
 
 
-@known_gap(
+@case(
     "inference_e2e.module_exists",
     "F2",
     "fast",
     "doc/04 §25",
     "The project provides a module handling canonical explanation copy and validation.",
-    "there is no inference_copy module",
 )
 def test_inference_e2e_module_exists():
     _copy_module()
 
 
-@known_gap(
+@case(
     "inference_e2e.fallback_copy_schema",
     "F2",
     "fast",
     "doc/04 §25.2",
     "FALLBACK_COPY provides all five required keys with copy_version == 'fallback'.",
-    "fallback copy is not defined",
 )
 def test_fallback_copy_schema():
     mod = _copy_module()
@@ -50,13 +48,12 @@ def test_fallback_copy_schema():
     assert fallback["copy_version"] == "fallback"
 
 
-@known_gap(
+@case(
     "inference_e2e.copy_keys_non_empty",
     "F2",
     "fast",
     "doc/04 §25.1",
     "Every required copy key is a non-empty string and not whitespace only.",
-    "copy key validation is not implemented",
 )
 def test_copy_keys_non_empty():
     mod = _copy_module()
@@ -66,13 +63,12 @@ def test_copy_keys_non_empty():
         assert isinstance(val, str) and len(val.strip()) > 0, "key %s is empty or not string" % key
 
 
-@known_gap(
+@case(
     "inference_e2e.malformed_copy_raises",
     "F2",
     "fast",
     "doc/04 §25.1",
     "A copy file missing any required key or having empty strings raises CheckpointIntegrityError.",
-    "copy integrity validation is not implemented",
 )
 def test_malformed_copy_raises():
     mod = _copy_module()

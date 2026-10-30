@@ -6,7 +6,7 @@ and split isolation between threshold-tuning dev queries and sealed test queries
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _eval_module():
@@ -14,25 +14,23 @@ def _eval_module():
     return importlib.import_module("retrieval_eval")
 
 
-@known_gap(
+@case(
     "retrieval_eval.module_exists",
     "F2",
     "fast",
     "doc/06 §9, §38",
     "The project provides a retrieval evaluation and metrics module.",
-    "there is no retrieval_eval module",
 )
 def test_retrieval_eval_module_exists():
     _eval_module()
 
 
-@known_gap(
+@case(
     "retrieval_eval.dev_test_split_isolation",
     "F2",
     "fast",
     "doc/06 §38",
     "Retrieval dev set tunes thresholds (tau_dense, alpha_relative) while the test set remains sealed.",
-    "split isolation enforcement is not implemented",
 )
 def test_dev_test_split_isolation():
     mod = _eval_module()
@@ -42,13 +40,12 @@ def test_dev_test_split_isolation():
     assert not (dev_ids & test_ids), "leakage detected: dev and test query sets overlap"
 
 
-@known_gap(
+@case(
     "retrieval_eval.metrics_hit_mrr_ndcg",
     "F2",
     "fast",
     "doc/06 §38",
     "Calculates Hit@k, MRR, and NDCG@k correctly across evaluated query rankings.",
-    "ranking metrics calculation is not implemented",
 )
 def test_metrics_hit_mrr_ndcg():
     mod = _eval_module()

@@ -6,7 +6,7 @@ inverse-frequency class weighting, and the two-stage selection protocol.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 torch = pytest.importorskip("torch")
 
@@ -16,26 +16,24 @@ def _training_module():
     return importlib.import_module("training")
 
 
-@known_gap(
+@case(
     "training.module_exists",
     "F2",
     "fast",
     "doc/03 §7",
     "The project provides a training module implementing optimizer setup, training loop, and selection.",
-    "there is no training module",
     requires=("torch",),
 )
 def test_training_module_exists():
     _training_module()
 
 
-@known_gap(
+@case(
     "training.seeds_fixed",
     "F2",
     "fast",
     "doc/03 §7.1",
     "The training seeds are fixed in advance to [42, 43, 44, 45, 46].",
-    "training seeds are not defined",
     requires=("torch",),
 )
 def test_seeds_fixed():
@@ -43,13 +41,12 @@ def test_seeds_fixed():
     assert list(mod.SEEDS) == [42, 43, 44, 45, 46]
 
 
-@known_gap(
+@case(
     "training.cpu_only_deterministic",
     "F2",
     "fast",
     "doc/03 §7.2, §7.5",
     "Head training defaults to CPU and enables deterministic algorithms for bitwise repeatability.",
-    "deterministic CPU training configuration is not implemented",
     requires=("torch",),
 )
 def test_cpu_only_deterministic():
@@ -59,13 +56,12 @@ def test_cpu_only_deterministic():
     assert config["deterministic"] is True
 
 
-@known_gap(
+@case(
     "training.inverse_frequency_class_weights",
     "F2",
     "fast",
     "doc/03 §6.2",
     "Class weights follow w_c = N / (C * n_c) computed from the training split only and sum to C under true frequencies.",
-    "class weight calculation is not implemented",
     requires=("torch",),
 )
 def test_inverse_frequency_class_weights():
@@ -81,13 +77,12 @@ def test_inverse_frequency_class_weights():
     assert abs(expected_sum - 2.0) < 1e-5
 
 
-@known_gap(
+@case(
     "training.tie_break_fewer_parameters",
     "F2",
     "fast",
     "doc/03 §9.4",
     "Models tied within 0.005 validation macro-F1 break ties by choosing the candidate with fewer parameters.",
-    "model selection tie-breaking is not implemented",
     requires=("torch",),
 )
 def test_tie_break_fewer_parameters():

@@ -2,7 +2,7 @@
 
 Three of these check the properties of the artefact the current pipeline
 produces, and pass today.  The rest assert the cache contract itself - the key,
-the metadata, the atomic write, the load validation - which does not exist yet.
+the metadata, the atomic write, the load validation.
 """
 
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 np = pytest.importorskip("numpy")
 
@@ -100,13 +100,12 @@ def test_npz_roundtrip_values_identical(extractor, tmp_path):
 # ---------------------------------------------------------------------------
 # the cache contract
 # ---------------------------------------------------------------------------
-@known_gap(
+@case(
     "cache.module_exists",
     "F4",
     "fast",
     "doc/01 §11.1",
     "The project provides a feature cache module with a key, a write and a read.",
-    "there is no feature cache module",
 )
 def test_cache_module_exists():
     module = _cache_module()
@@ -114,13 +113,12 @@ def test_cache_module_exists():
         assert hasattr(module, name), "the cache module does not define %s" % name
 
 
-@known_gap(
+@case(
     "cache.key_components",
     "F4",
     "fast",
     "doc/01 §11.3",
     "The cache key covers every input that can change the output, including the model revision, the feature extractor version, the preprocessing version, the dtype, the normalisation flag, the tokenizer limit, the library versions, and the source manifest hash.",
-    "there is no cache key",
 )
 def test_key_components():
     key = _cache_module().cache_key(
@@ -138,13 +136,12 @@ def test_key_components():
         assert part in key, "the key does not include %r" % part
 
 
-@known_gap(
+@case(
     "cache.metadata_present",
     "F4",
     "fast",
     "doc/01 §11.4",
     "The cache records the metadata block, including the model id, the revision, the versions, the dtype, the normalisation flag, the tokenizer limit, the device, the row count, and the manifest hash.",
-    "the cache records no metadata",
 )
 def test_metadata_present(tmp_path):
     target = tmp_path / "cache"
@@ -158,13 +155,12 @@ def test_metadata_present(tmp_path):
         assert field in payload, "the metadata is missing %s" % field
 
 
-@known_gap(
+@case(
     "cache.atomic_write",
     "F4",
     "fast",
     "doc/01 §11.5",
     "An interrupted write leaves no loadable cache; the metadata is written last.",
-    "the cache is written in place, with no atomic procedure",
 )
 def test_atomic_write(tmp_path):
     target = tmp_path / "cache"
@@ -178,13 +174,12 @@ def test_atomic_write(tmp_path):
         module.read_cache(target)
 
 
-@known_gap(
+@case(
     "cache.load_validates",
     "F4",
     "fast",
     "doc/01 §11.6",
     "A cache whose revision, version, or normalisation flag does not match the current configuration is rejected on load.",
-    "the cache is loaded without validation",
 )
 def test_load_validates(tmp_path):
     target = tmp_path / "cache"
@@ -200,13 +195,12 @@ def test_load_validates(tmp_path):
         module.read_cache(target)
 
 
-@known_gap(
+@case(
     "cache.device_excluded_by_default",
     "F4",
     "fast",
     "doc/01 §11.7",
     "The device is not part of the cache key by default, so a cache is shareable across machines.",
-    "there is no cache key, so neither behaviour exists",
 )
 def test_device_excluded_by_default():
     module = _cache_module()
@@ -226,13 +220,12 @@ def test_device_excluded_by_default():
     assert first == second, "the device changed the cache key by default"
 
 
-@known_gap(
+@case(
     "cache.device_namespace_flag",
     "F4",
     "fast",
     "doc/01 §11.7",
     "The device_namespace flag segregates caches by device when strict reproducibility is required.",
-    "there is no cache key, so the flag cannot exist",
 )
 def test_device_namespace_flag():
     module = _cache_module()

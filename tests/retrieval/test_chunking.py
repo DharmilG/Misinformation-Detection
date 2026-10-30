@@ -6,7 +6,7 @@ heading path tracking, and the generation of three distinct representations (tex
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _chunking_module():
@@ -14,25 +14,23 @@ def _chunking_module():
     return importlib.import_module("retrieval_chunking")
 
 
-@known_gap(
+@case(
     "chunking.module_exists",
     "F2",
     "fast",
     "doc/06 §11",
     "The project provides a sentence-aware text chunking module.",
-    "there is no retrieval_chunking module",
 )
 def test_chunking_module_exists():
     _chunking_module()
 
 
-@known_gap(
+@case(
     "chunking.sliding_window_sentences",
     "F2",
     "fast",
     "doc/06 §11.1",
     "Chunking applies sentence-aware sliding windows with ~200 token targets and never splits mid-sentence.",
-    "sliding window sentence chunking is not implemented",
 )
 def test_sliding_window_sentences():
     mod = _chunking_module()
@@ -52,13 +50,12 @@ def test_sliding_window_sentences():
         assert c.text.endswith((".", "!", "?"))
 
 
-@known_gap(
+@case(
     "chunking.heading_path_tracked",
     "F2",
     "fast",
     "doc/06 §11.1, §11.2",
     "Chunks retain heading_path metadata, which is prepended into dense_text.",
-    "heading path tracking is not implemented",
 )
 def test_heading_path_tracked():
     mod = _chunking_module()
@@ -70,13 +67,12 @@ def test_heading_path_tracked():
     assert body in chunk.dense_text
 
 
-@known_gap(
+@case(
     "chunking.three_representations",
     "F2",
     "fast",
     "doc/06 §10.3",
     "Every chunk exposes three distinct representations: text, lexical_text, and dense_text.",
-    "three chunk representations are not generated",
 )
 def test_three_representations():
     mod = _chunking_module()
@@ -93,13 +89,12 @@ def test_three_representations():
     assert "Section 1" in chunk.dense_text
 
 
-@known_gap(
+@case(
     "chunking.token_budget_context_fit",
     "F2",
     "fast",
     "doc/06 §11.2",
     "Chunk token budget accounts for special tokens and heading reserve, setting truncated flag on overflow.",
-    "token budget management is not implemented",
 )
 def test_token_budget_context_fit():
     mod = _chunking_module()

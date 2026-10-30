@@ -6,7 +6,7 @@ response size limit enforcement, and redirect re-validation.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _ingest_module():
@@ -14,25 +14,23 @@ def _ingest_module():
     return importlib.import_module("retrieval_ingest")
 
 
-@known_gap(
+@case(
     "ingest_safety.module_exists",
     "F2",
     "fast",
     "doc/06 §9",
     "The project provides a document ingestion and safety module.",
-    "there is no retrieval_ingest module",
 )
 def test_ingest_safety_module_exists():
     _ingest_module()
 
 
-@known_gap(
+@case(
     "ingest_safety.schemes_https_only",
     "F2",
     "fast",
     "doc/06 §9.2",
     "Only https schemes are permitted; http requests are refused unless explicit override is configured.",
-    "scheme enforcement is not implemented",
 )
 def test_schemes_https_only():
     mod = _ingest_module()
@@ -42,13 +40,12 @@ def test_schemes_https_only():
     assert mod.validate_target_url("https://secure-source.com/article") is True
 
 
-@known_gap(
+@case(
     "ingest_safety.private_addresses_rejected",
     "F2",
     "fast",
     "doc/06 §9.2",
     "SSRF guard resolves DNS and rejects loopback (127.0.0.1), private RFC1918, link-local, and reserved IP ranges.",
-    "SSRF IP range guard is not implemented",
 )
 def test_private_addresses_rejected():
     mod = _ingest_module()
@@ -56,13 +53,12 @@ def test_private_addresses_rejected():
         assert mod.is_ip_allowed(bad_ip) is False, "Private/reserved IP was not blocked: %s" % bad_ip
 
 
-@known_gap(
+@case(
     "ingest_safety.response_size_limit_raises",
     "F2",
     "fast",
     "doc/06 §9.2",
     "Payload exceeding max response byte size raises an error rather than silently truncating.",
-    "response size guard is not implemented",
 )
 def test_response_size_limit_raises():
     mod = _ingest_module()
@@ -72,13 +68,12 @@ def test_response_size_limit_raises():
         mod.read_response_safe(huge_stream, max_bytes=max_bytes)
 
 
-@known_gap(
+@case(
     "ingest_safety.redirect_limit_and_revalidation",
     "F2",
     "fast",
     "doc/06 §9.2",
     "Redirects are bounded in number and each hop is re-validated against all safety rules.",
-    "redirect safety validation is not implemented",
 )
 def test_redirect_limit_and_revalidation():
     mod = _ingest_module()

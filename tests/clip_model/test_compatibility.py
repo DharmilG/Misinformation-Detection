@@ -6,7 +6,7 @@ supported ranges warnings, actionable error reporting, and lockfile presence.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _compatibility_module():
@@ -14,25 +14,23 @@ def _compatibility_module():
     return importlib.import_module("classifier_compatibility")
 
 
-@known_gap(
+@case(
     "compatibility.module_exists",
     "F2",
     "fast",
     "doc/03 §22",
     "The project provides a compatibility validation module.",
-    "there is no compatibility module",
 )
 def test_compatibility_module_exists():
     _compatibility_module()
 
 
-@known_gap(
+@case(
     "compatibility.hard_requirements_enforced",
     "F2",
     "fast",
     "doc/03 §22.3, §22.4",
     "Failing a hard requirement (e.g. weights_only unsupported) raises CheckpointIncompatibleError.",
-    "hard requirement enforcement is not implemented",
 )
 def test_hard_requirements_enforced():
     mod = _compatibility_module()
@@ -42,13 +40,12 @@ def test_hard_requirements_enforced():
     assert "Incompatible" in type(excinfo.value).__name__
 
 
-@known_gap(
+@case(
     "compatibility.supported_ranges_warn",
     "F2",
     "fast",
     "doc/03 §22.4",
     "Out-of-range versions in supported_ranges emit warnings unless strict_compatibility is set.",
-    "supported ranges checking is not implemented",
 )
 def test_supported_ranges_warn():
     mod = _compatibility_module()
@@ -61,13 +58,12 @@ def test_supported_ranges_warn():
         mod.check_supported_ranges(env, ranges, strict=True)
 
 
-@known_gap(
+@case(
     "compatibility.error_message_states_versions",
     "F2",
     "fast",
     "doc/03 §22.4",
     "Every compatibility failure states both the installed version and the expected version.",
-    "detailed error formatting is not implemented",
 )
 def test_error_message_states_versions():
     mod = _compatibility_module()
@@ -80,13 +76,12 @@ def test_error_message_states_versions():
         assert "2.1" in msg, "error message missing expected version"
 
 
-@known_gap(
+@case(
     "compatibility.lockfile_present_in_release",
     "F2",
     "fast",
     "doc/03 §22.5",
     "requirements-lock.txt exists in the release and pins exact package versions.",
-    "lockfile generator is not implemented",
 )
 def test_lockfile_present_in_release(tmp_path):
     mod = _compatibility_module()

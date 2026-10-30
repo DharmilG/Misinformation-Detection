@@ -6,7 +6,7 @@ and warning list deduplication with order preservation.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _warnings_module():
@@ -14,25 +14,23 @@ def _warnings_module():
     return importlib.import_module("inference_warnings")
 
 
-@known_gap(
+@case(
     "input_warnings.module_exists",
     "F2",
     "fast",
     "doc/04 §24",
     "The project provides an inference warnings module calculating context alerts.",
-    "there is no inference_warnings module",
 )
 def test_warnings_module_exists():
     _warnings_module()
 
 
-@known_gap(
+@case(
     "input_warnings.crop_retention_formula",
     "F2",
     "fast",
     "doc/04 §24.1",
     "retained_area_fraction is computed as min(W, H) / max(W, H) from original dimensions.",
-    "crop retention formula is not implemented",
 )
 def test_crop_retention_formula():
     mod = _warnings_module()
@@ -45,13 +43,12 @@ def test_crop_retention_formula():
     assert abs(fraction_extreme - 0.25) < 1e-5
 
 
-@known_gap(
+@case(
     "input_warnings.crop_retention_threshold",
     "F2",
     "fast",
     "doc/04 §24.1",
     "Images with retained area fraction < 0.5 emit LOW_CROP_RETENTION warning.",
-    "crop retention threshold checking is not implemented",
 )
 def test_crop_retention_threshold():
     mod = _warnings_module()
@@ -64,13 +61,12 @@ def test_crop_retention_threshold():
     assert "LOW_CROP_RETENTION" in warns_extreme
 
 
-@known_gap(
+@case(
     "input_warnings.deduplicated_order_preserved",
     "F2",
     "fast",
     "doc/04 §9.2, §24",
     "Warning collections preserve emission order and eliminate duplicate warning codes.",
-    "warning list deduplication is not implemented",
 )
 def test_deduplicated_order_preserved():
     mod = _warnings_module()
