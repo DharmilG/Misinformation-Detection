@@ -6,7 +6,7 @@ soft diversity caps (only applied while alternatives exist), and retention of co
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _filters_module():
@@ -14,25 +14,23 @@ def _filters_module():
     return importlib.import_module("retrieval_filters")
 
 
-@known_gap(
+@case(
     "retrieval_filters.module_exists",
     "F2",
     "fast",
     "doc/06 §19",
     "The project provides a retrieval relevance filtering and diversity capping module.",
-    "there is no retrieval_filters module",
 )
 def test_filters_module_exists():
     _filters_module()
 
 
-@known_gap(
+@case(
     "retrieval_filters.dense_floor_absolute_gate",
     "F2",
     "fast",
     "doc/06 §19.1, §19.2",
     "Candidates whose dense cosine similarity is below tau_dense are dropped at Stage A.",
-    "dense floor gate is not implemented",
 )
 def test_dense_floor_absolute_gate():
     mod = _filters_module()
@@ -46,13 +44,12 @@ def test_dense_floor_absolute_gate():
     assert filtered[0]["chunk_id"] == "c1"
 
 
-@known_gap(
+@case(
     "retrieval_filters.relative_drop_band",
     "F2",
     "fast",
     "doc/06 §19.2",
     "Passages whose final score is below alpha_relative * top_score are dropped at Stage B.",
-    "relative drop band filtering is not implemented",
 )
 def test_relative_drop_band():
     mod = _filters_module()
@@ -67,13 +64,12 @@ def test_relative_drop_band():
     assert ids == ["c1", "c2"]
 
 
-@known_gap(
+@case(
     "retrieval_filters.soft_diversity_caps",
     "F2",
     "fast",
     "doc/06 §19.2",
     "Soft diversity caps limit chunks per document/source only while alternatives exist, never discarding the last passage.",
-    "soft diversity caps are not implemented",
 )
 def test_soft_diversity_caps():
     mod = _filters_module()
@@ -91,13 +87,12 @@ def test_soft_diversity_caps():
     assert "docB::c1" in capped_ids
 
 
-@known_gap(
+@case(
     "retrieval_filters.contradictory_relevant_passages_retained",
     "F2",
     "fast",
     "doc/06 §19.3",
     "Filtering measures relevance only; passages that contradict the claim but are relevant are never filtered out.",
-    "content-neutral relevance filtering is not implemented",
 )
 def test_contradictory_relevant_passages_retained():
     mod = _filters_module()

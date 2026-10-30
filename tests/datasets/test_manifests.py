@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 REQUIRED_FIELDS = {
     "sample_id",
@@ -41,25 +41,23 @@ def _manifest_module():
     return importlib.import_module("manifests")
 
 
-@known_gap(
+@case(
     "manifest.module_exists",
     "F5",
     "fast",
     "doc/02 §12.1",
     "The project provides a manifest builder and validation module.",
-    "there is no manifests module",
 )
 def test_manifest_module_exists():
     _manifest_module()
 
 
-@known_gap(
+@case(
     "manifest.record_schema",
     "F5",
     "fast",
     "doc/02 §12.2",
     "Every manifest record carries the complete 22-field schema defined in Document 02 §12.2.",
-    "the manifest builder is not implemented",
 )
 def test_record_schema():
     mod = _manifest_module()
@@ -81,13 +79,12 @@ def test_record_schema():
     assert not missing, "record is missing fields: %s" % missing
 
 
-@known_gap(
+@case(
     "manifest.sample_id_format",
     "F5",
     "fast",
     "doc/02 §12.2",
     "The sample_id follows the format 'nclp_<split>_<index:06d>' and is unique.",
-    "the manifest builder is not implemented",
 )
 def test_sample_id_format():
     mod = _manifest_module()
@@ -95,26 +92,24 @@ def test_sample_id_format():
     assert sample_id == "nclp_train_000042"
 
 
-@known_gap(
+@case(
     "manifest.version_is_one",
     "F5",
     "fast",
     "doc/02 §12.2, §12.6",
     "The manifest_version integer is 1.",
-    "the manifest builder is not implemented",
 )
 def test_manifest_version_is_one():
     mod = _manifest_module()
     assert mod.MANIFEST_VERSION == 1
 
 
-@known_gap(
+@case(
     "manifest.atomic_write",
     "F5",
     "fast",
     "doc/02 §12.4",
     "Writing a manifest writes to a temporary file first and renames atomically.",
-    "the manifest writer is not implemented",
 )
 def test_manifest_atomic_write(tmp_path):
     mod = _manifest_module()
@@ -125,13 +120,12 @@ def test_manifest_atomic_write(tmp_path):
     assert not (tmp_path / "manifest.jsonl.tmp").exists()
 
 
-@known_gap(
+@case(
     "manifest.hash_consistency",
     "F5",
     "fast",
     "doc/02 §12.2, §12.5",
     "The image_sha256 and caption_sha256 are 64-character lowercase hexadecimal digests.",
-    "the manifest hasher is not implemented",
 )
 def test_hash_consistency():
     import re

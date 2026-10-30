@@ -7,7 +7,7 @@ calibration invariants.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 torch = pytest.importorskip("torch")
 
@@ -17,26 +17,24 @@ def _classifier_module():
     return importlib.import_module("classifier")
 
 
-@known_gap(
+@case(
     "classifier.module_exists",
     "F2",
     "fast",
     "doc/03 §4",
     "The project provides a classifier module defining head architectures and feature builders.",
-    "there is no classifier module",
     requires=("torch",),
 )
 def test_classifier_module_exists():
     _classifier_module()
 
 
-@known_gap(
+@case(
     "classifier.candidate_families",
     "F2",
     "fast",
     "doc/03 §4.1",
     "The pre-registered candidates A, B, C, D-B, and D-C are defined with their expected input dimensions.",
-    "candidate families are not defined",
     requires=("torch",),
 )
 def test_candidate_families():
@@ -50,13 +48,12 @@ def test_candidate_families():
     assert families["D-C"]["input_dim"] == 2048
 
 
-@known_gap(
+@case(
     "classifier.family_c_features",
     "F2",
     "fast",
     "doc/03 §4.2",
     "Family C feature construction concatenates [v_i ; v_t ; v_i ⊙ v_t ; |v_i − v_t|] into a 2048-d vector.",
-    "feature construction is not implemented",
     requires=("torch",),
 )
 def test_family_c_features():
@@ -71,13 +68,12 @@ def test_family_c_features():
     assert torch.allclose(z[:, 1536:2048], expected_diff)
 
 
-@known_gap(
+@case(
     "classifier.family_d_architecture",
     "F2",
     "fast",
     "doc/03 §4.3",
     "Family D models use Linear -> ReLU -> Dropout -> Linear(2) producing 2-class logits.",
-    "family D model architecture is not implemented",
     requires=("torch",),
 )
 def test_family_d_architecture():
@@ -88,13 +84,12 @@ def test_family_d_architecture():
     assert tuple(logits.shape) == (4, 2)
 
 
-@known_gap(
+@case(
     "classifier.operating_threshold_selection",
     "F2",
     "fast",
     "doc/03 §10.1",
     "The operating threshold is selected on validation data maximizing validation macro-F1 on the uncalibrated score.",
-    "threshold selection is not implemented",
     requires=("torch",),
 )
 def test_operating_threshold_selection():
@@ -105,13 +100,12 @@ def test_operating_threshold_selection():
     assert 0.4 <= threshold <= 0.6
 
 
-@known_gap(
+@case(
     "classifier.calibration_does_not_change_label",
     "F2",
     "fast",
     "doc/03 §12.1",
     "Temperature calibration changes the displayed probability but preserves predicted labels identically.",
-    "calibration is not implemented",
     requires=("torch",),
 )
 def test_calibration_does_not_change_label():

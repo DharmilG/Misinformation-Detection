@@ -6,7 +6,7 @@ Error (ECE) 10-bin calculation, and proper scoring rules (Brier score).
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 torch = pytest.importorskip("torch")
 
@@ -16,26 +16,24 @@ def _calibration_module():
     return importlib.import_module("classifier_calibration")
 
 
-@known_gap(
+@case(
     "calibration.module_exists",
     "F2",
     "fast",
     "doc/03 §12",
     "The project provides a calibration module implementing temperature scaling and metrics.",
-    "there is no calibration module",
     requires=("torch",),
 )
 def test_calibration_module_exists():
     _calibration_module()
 
 
-@known_gap(
+@case(
     "calibration.temperature_scaling_formula",
     "F2",
     "fast",
     "doc/03 §12.1",
     "Calibrated probability is softmax(logits / T)[positive_class] with T >= 1.",
-    "temperature scaling calculation is not implemented",
     requires=("torch",),
 )
 def test_temperature_scaling_formula():
@@ -49,13 +47,12 @@ def test_temperature_scaling_formula():
     assert abs(prob.item() - expected_prob) < 1e-5
 
 
-@known_gap(
+@case(
     "calibration.fit_on_validation_only",
     "F2",
     "fast",
     "doc/03 §12.2",
     "Temperature is fit by minimizing negative log-likelihood over T using validation predictions only.",
-    "temperature optimizer is not implemented",
     requires=("torch",),
 )
 def test_fit_on_validation_only():
@@ -66,13 +63,12 @@ def test_fit_on_validation_only():
     assert t_opt >= 1.0
 
 
-@known_gap(
+@case(
     "calibration.ece_ten_bins",
     "F2",
     "fast",
     "doc/03 §12.4",
     "Expected Calibration Error (ECE) uses 10 equal-width bins on predicted probabilities.",
-    "ECE calculation is not implemented",
     requires=("torch",),
 )
 def test_ece_ten_bins():
@@ -85,13 +81,12 @@ def test_ece_ten_bins():
     assert 0.0 <= ece <= 1.0
 
 
-@known_gap(
+@case(
     "calibration.brier_score",
     "F2",
     "fast",
     "doc/03 §12.4",
     "Brier score is computed as the mean squared difference between predicted probability and binary outcome.",
-    "Brier score calculation is not implemented",
     requires=("torch",),
 )
 def test_brier_score():

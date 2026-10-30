@@ -10,12 +10,21 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-CLIP_DIR = ROOT / "src" / "clip_model"
 DATASET_ROOT = Path(os.environ.get("OOC_DATASET_ROOT", ROOT / "dataset" / "ooc_dataset"))
 SAMPLE_DIR = ROOT / "data" / "sample"
 
-if str(CLIP_DIR) not in sys.path:
-    sys.path.insert(0, str(CLIP_DIR))
+SRC_DIRS = [
+    ROOT / "src",
+    ROOT / "src" / "clip_model",
+    ROOT / "src" / "input_pipeline",
+    ROOT / "src" / "datasets",
+    ROOT / "src" / "retrieval",
+    ROOT / "src" / "rag",
+    ROOT / "src" / "reporting",
+]
+for p in SRC_DIRS:
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
 #: Collected results, for the conformance report.
 RESULTS = []

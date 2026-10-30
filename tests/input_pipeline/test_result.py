@@ -6,7 +6,7 @@ the independence of image_validated and image_features_available, and prompt bou
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _result_module():
@@ -14,25 +14,23 @@ def _result_module():
     return importlib.import_module("inference_result")
 
 
-@known_gap(
+@case(
     "result.module_exists",
     "F2",
     "fast",
     "doc/04 §15",
     "The project provides a result module defining ClassifierResult and AssessmentContext.",
-    "there is no inference_result module",
 )
 def test_result_module_exists():
     _result_module()
 
 
-@known_gap(
+@case(
     "result.classifier_result_schema",
     "F2",
     "fast",
     "doc/04 §15",
     "ClassifierResult defines all required fields including calibration_status, elapsed_ms, and warnings.",
-    "ClassifierResult is not defined",
 )
 def test_classifier_result_schema():
     mod = _result_module()
@@ -62,13 +60,12 @@ def test_classifier_result_schema():
     assert not missing, "ClassifierResult missing fields: %s" % missing
 
 
-@known_gap(
+@case(
     "result.classifier_ok_invariants",
     "F2",
     "fast",
     "doc/04 §15.1",
     "When status == OK, label, score, logit_positive, threshold are present; probability is present iff calibration_status == APPLIED.",
-    "ClassifierResult OK invariants are not enforced",
 )
 def test_classifier_ok_invariants():
     mod = _result_module()
@@ -97,13 +94,12 @@ def test_classifier_ok_invariants():
     assert res_uncal.calibration_status == mod.CalibrationStatus.ABSENT
 
 
-@known_gap(
+@case(
     "result.assessment_context_contract",
     "F2",
     "fast",
     "doc/04 §19.1",
     "AssessmentContext contains request_id, caption, image_validated, image_features_available, and interpretation.",
-    "AssessmentContext is not implemented",
 )
 def test_assessment_context_contract():
     mod = _result_module()
@@ -124,13 +120,12 @@ def test_assessment_context_contract():
     assert not missing, "AssessmentContext missing fields: %s" % missing
 
 
-@known_gap(
+@case(
     "result.two_image_flags_independent",
     "F2",
     "fast",
     "doc/04 §19.3",
     "image_validated and image_features_available are separate booleans allowing validated image with unavailable features.",
-    "dual image availability flags are not implemented",
 )
 def test_two_image_flags_independent():
     mod = _result_module()
@@ -140,13 +135,12 @@ def test_two_image_flags_independent():
     assert ctx.image_features_available is False
 
 
-@known_gap(
+@case(
     "result.untrusted_retrieved_passages",
     "F2",
     "fast",
     "doc/04 §20",
     "External retrieved strings are never concatenated directly into system prompt or configuration.",
-    "trust boundary sanitization is not implemented",
 )
 def test_untrusted_retrieved_passages():
     mod = _result_module()

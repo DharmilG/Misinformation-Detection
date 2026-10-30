@@ -6,7 +6,7 @@ deterministic tie-breaking by chunk_id, and single-retriever graceful degradatio
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _fusion_module():
@@ -14,25 +14,23 @@ def _fusion_module():
     return importlib.import_module("retrieval_fusion")
 
 
-@known_gap(
+@case(
     "rrf_fusion.module_exists",
     "F2",
     "fast",
     "doc/06 §16",
     "The project provides a Reciprocal Rank Fusion module.",
-    "there is no retrieval_fusion module",
 )
 def test_fusion_module_exists():
     _fusion_module()
 
 
-@known_gap(
+@case(
     "rrf_fusion.constant_k_60",
     "F2",
     "fast",
     "doc/06 §16.1",
     "RRF computes scores with standard smoothing constant k=60: 1 / (60 + rank).",
-    "RRF score calculation is not implemented",
 )
 def test_constant_k_60():
     mod = _fusion_module()
@@ -49,13 +47,12 @@ def test_constant_k_60():
     assert abs(fused["c1"] - expected) < 1e-6
 
 
-@known_gap(
+@case(
     "rrf_fusion.tie_breaking_by_chunk_id",
     "F2",
     "fast",
     "doc/06 §16.1",
     "Ties in fused RRF score are broken deterministically by chunk_id alphabetical order.",
-    "RRF tie-breaking is not implemented",
 )
 def test_tie_breaking_by_chunk_id():
     mod = _fusion_module()
@@ -65,13 +62,12 @@ def test_tie_breaking_by_chunk_id():
     assert ranked[1][0] == "c_beta"
 
 
-@known_gap(
+@case(
     "rrf_fusion.graceful_single_retriever_degradation",
     "F2",
     "fast",
     "doc/06 §16.2",
     "When one retriever returns no candidates, RRF degrades gracefully without crashing or zeroing output.",
-    "RRF single-retriever fallback is not implemented",
 )
 def test_graceful_single_retriever_degradation():
     mod = _fusion_module()

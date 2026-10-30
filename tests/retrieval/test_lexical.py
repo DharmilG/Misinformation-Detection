@@ -6,7 +6,7 @@ BM25 scoring formula (k1=1.5, b=0.75, +1.0 IDF smoothing), and rebuild-equivalen
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _lexical_module():
@@ -14,25 +14,23 @@ def _lexical_module():
     return importlib.import_module("retrieval_lexical")
 
 
-@known_gap(
+@case(
     "lexical_bm25.module_exists",
     "F2",
     "fast",
     "doc/06 §14",
     "The project provides a lexical BM25 retrieval module.",
-    "there is no retrieval_lexical module",
 )
 def test_lexical_module_exists():
     _lexical_module()
 
 
-@known_gap(
+@case(
     "lexical_bm25.analyzer_rules",
     "F2",
     "fast",
     "doc/06 §14.1",
     "The analyzer lowercases, splits on non-alphanumeric chars, keeps tokens >= 2 chars, and removes NO stopwords or stems.",
-    "lexical analyzer rules are not implemented",
 )
 def test_analyzer_rules():
     mod = _lexical_module()
@@ -49,13 +47,12 @@ def test_analyzer_rules():
     assert "a" not in mod.analyze_text("A book")
 
 
-@known_gap(
+@case(
     "lexical_bm25.scoring_formula",
     "F2",
     "fast",
     "doc/06 §14.2",
     "BM25 scoring enforces k1=1.5, b=0.75, and +1.0 Lucene-style IDF smoothing.",
-    "BM25 scoring calculation is not implemented",
 )
 def test_scoring_formula():
     mod = _lexical_module()
@@ -65,13 +62,12 @@ def test_scoring_formula():
     assert score > 0.0
 
 
-@known_gap(
+@case(
     "lexical_bm25.rebuild_equivalence",
     "F2",
     "fast",
     "doc/06 §14.4",
     "A persisted lexical index and a fresh in-memory rebuild produce identical rankings for a fixed query set.",
-    "lexical rebuild equivalence test is not implemented",
 )
 def test_rebuild_equivalence(tmp_path):
     mod = _lexical_module()

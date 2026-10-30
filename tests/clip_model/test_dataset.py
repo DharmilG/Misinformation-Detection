@@ -18,26 +18,24 @@ def _dataset_module():
     return importlib.import_module("classifier_dataset")
 
 
-@known_gap(
+@case(
     "classifier_data.module_exists",
     "F2",
     "fast",
     "doc/03 §5.2",
     "The project provides a classifier dataset module defining FeaturePairDataset.",
-    "there is no classifier dataset module",
     requires=("torch", "numpy"),
 )
 def test_dataset_module_exists():
     _dataset_module()
 
 
-@known_gap(
+@case(
     "classifier_data.feature_pair_serves_triples",
     "F2",
     "fast",
     "doc/03 §5.2",
     "FeaturePairDataset serves (features, label, sample_id) triples.",
-    "FeaturePairDataset is not implemented",
     requires=("torch", "numpy"),
 )
 def test_feature_pair_serves_triples():
@@ -56,13 +54,12 @@ def test_feature_pair_serves_triples():
     assert sid == "s1"
 
 
-@known_gap(
+@case(
     "classifier_data.unknown_excluded",
     "F2",
     "fast",
     "doc/03 §5.3",
     "UNKNOWN records are excluded from supervised training by default.",
-    "UNKNOWN exclusion in FeaturePairDataset is not implemented",
     requires=("torch", "numpy"),
 )
 def test_unknown_excluded():
@@ -75,13 +72,12 @@ def test_unknown_excluded():
     assert ds.sample_ids == ["s1", "s3"]
 
 
-@known_gap(
+@case(
     "classifier_data.read_only_numpy",
     "F2",
     "fast",
     "doc/03 §5.2",
     "FeaturePairDataset holds arrays as read-only NumPy and performs no in-place mutation.",
-    "read-only array safety is not implemented",
     requires=("torch", "numpy"),
 )
 def test_read_only_numpy():
@@ -93,13 +89,12 @@ def test_read_only_numpy():
     assert not ds.features.flags.writeable, "features array in dataset is mutable"
 
 
-@known_gap(
+@case(
     "classifier_data.manifest_cache_alignment",
     "F2",
     "fast",
     "doc/03 §5.1",
     "Every training run verifies manifest-to-cache alignment; row count or hash mismatch raises.",
-    "manifest-to-cache alignment checker is not implemented",
     requires=("torch", "numpy"),
 )
 def test_manifest_cache_alignment():

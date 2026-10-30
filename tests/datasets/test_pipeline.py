@@ -10,18 +10,17 @@ from pathlib import Path
 
 import pytest
 
-from tests.ids import known_gap
+from tests.ids import case, known_gap
 
 CACHE_ROOT = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "features"
 
 
-@known_gap(
+@case(
     "pipeline.module_exists",
     "F7",
     "fast",
     "doc/02 §14",
     "The project provides a dataset feature-extraction module.",
-    "there is no extraction module",
 )
 def test_pipeline_module_exists():
     import importlib

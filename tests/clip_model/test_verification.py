@@ -7,7 +7,7 @@ tampered fixture rejection prior to inference, and quantitative acceptance crite
 from pathlib import Path
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _verification_module():
@@ -15,25 +15,23 @@ def _verification_module():
     return importlib.import_module("classifier_verification")
 
 
-@known_gap(
+@case(
     "verification.module_exists",
     "F2",
     "fast",
     "doc/03 §28",
     "The project provides a verification runner module.",
-    "there is no verification module",
 )
 def test_verification_module_exists():
     _verification_module()
 
 
-@known_gap(
+@case(
     "verification.normal_prediction_path",
     "F2",
     "fast",
     "doc/03 §28.2",
     "Verification uses the standard LoadedClassifier prediction path, not a special verification bypass.",
-    "verification runner is not implemented",
 )
 def test_normal_prediction_path():
     mod = _verification_module()
@@ -41,13 +39,12 @@ def test_normal_prediction_path():
     assert mod.USES_NORMAL_INFERENCE_PATH is True
 
 
-@known_gap(
+@case(
     "verification.report_schema",
     "F2",
     "fast",
     "doc/03 §28.5",
     "The verification report contains all required schema fields including tolerance, environment, and differences.",
-    "verification report schema is not implemented",
 )
 def test_report_schema():
     mod = _verification_module()
@@ -70,13 +67,12 @@ def test_report_schema():
     assert not missing, "verification report missing keys: %s" % missing
 
 
-@known_gap(
+@case(
     "verification.fixture_hash_check_first",
     "F2",
     "fast",
     "doc/03 §28.2",
     "Tampered fixture images or captions fail verification before any model prediction is executed.",
-    "fixture hash checking is not implemented",
 )
 def test_fixture_hash_check_first(tmp_path):
     mod = _verification_module()
@@ -87,13 +83,12 @@ def test_fixture_hash_check_first(tmp_path):
         mod.verify_fixture_hashes(tmp_path, manifest)
 
 
-@known_gap(
+@case(
     "verification.acceptance_criteria",
     "F2",
     "fast",
     "doc/03 §28.3",
     "Verification passes only with 100% class agreement, score diff <= 1e-4, and prob diff <= 1e-4.",
-    "acceptance criteria enforcement is not implemented",
 )
 def test_acceptance_criteria():
     mod = _verification_module()

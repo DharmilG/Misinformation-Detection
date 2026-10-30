@@ -7,7 +7,7 @@ caption Unicode NFKC normalization, and InputRequest schema invariants.
 from io import BytesIO
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 PIL_Image = pytest.importorskip("PIL.Image")
 
@@ -17,26 +17,24 @@ def _input_module():
     return importlib.import_module("input_pipeline")
 
 
-@known_gap(
+@case(
     "input_pipeline.module_exists",
     "F3",
     "fast",
     "doc/04 §9.3",
     "The project provides an input pipeline module exposing build_input_request.",
-    "there is no input_pipeline module",
     requires=("PIL",),
 )
 def test_input_pipeline_module_exists():
     _input_module()
 
 
-@known_gap(
+@case(
     "input_pipeline.empty_file_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §10.2",
     "Empty 0-byte upload raises InputValidationError with EMPTY_FILE code.",
-    "input validation is not implemented",
     requires=("PIL",),
 )
 def test_empty_file_rejected():
@@ -46,13 +44,12 @@ def test_empty_file_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.EMPTY_FILE
 
 
-@known_gap(
+@case(
     "input_pipeline.image_too_large_rejected",
     "F3",
     "fast",
     "doc/04 §6.1",
     "Upload exceeding max_upload_bytes (10 MB) raises IMAGE_TOO_LARGE before attempting decode.",
-    "upload size check is not implemented",
     requires=("PIL",),
 )
 def test_image_too_large_rejected():
@@ -63,13 +60,12 @@ def test_image_too_large_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.IMAGE_TOO_LARGE
 
 
-@known_gap(
+@case(
     "input_pipeline.pixel_count_limit",
     "F3",
     "fast",
     "doc/04 §6.1",
     "Image exceeding max_pixels (40 MP) raises IMAGE_TOO_MANY_PIXELS before loading full pixels.",
-    "pixel count limit is not implemented",
     requires=("PIL",),
 )
 def test_pixel_count_limit():
@@ -84,13 +80,12 @@ def test_pixel_count_limit():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.IMAGE_TOO_MANY_PIXELS
 
 
-@known_gap(
+@case(
     "input_pipeline.image_too_small_rejected",
     "F3",
     "fast",
     "doc/04 §6.1",
     "Image with width or height under 32 px raises IMAGE_TOO_SMALL.",
-    "minimum dimension validation is not implemented",
     requires=("PIL",),
 )
 def test_image_too_small_rejected():
@@ -103,13 +98,12 @@ def test_image_too_small_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.IMAGE_TOO_SMALL
 
 
-@known_gap(
+@case(
     "input_pipeline.unsupported_format_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §7.1",
     "Non-JPEG/PNG formats (e.g. text file or GIF) raise UNSUPPORTED_FORMAT.",
-    "format validation is not implemented",
     requires=("PIL",),
 )
 def test_unsupported_format_rejected():
@@ -119,13 +113,12 @@ def test_unsupported_format_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.UNSUPPORTED_FORMAT
 
 
-@known_gap(
+@case(
     "input_pipeline.animated_image_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §7.1",
     "Multi-frame animated images raise ANIMATED_IMAGE.",
-    "animation check is not implemented",
     requires=("PIL",),
 )
 def test_animated_image_rejected():
@@ -142,13 +135,12 @@ def test_animated_image_rejected():
     )
 
 
-@known_gap(
+@case(
     "input_pipeline.caption_empty_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §8.2",
     "Whitespace-only or empty caption raises CAPTION_EMPTY.",
-    "caption empty check is not implemented",
     requires=("PIL",),
 )
 def test_caption_empty_rejected():
@@ -161,13 +153,12 @@ def test_caption_empty_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.CAPTION_EMPTY
 
 
-@known_gap(
+@case(
     "input_pipeline.caption_too_short_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §8.2",
     "Caption with fewer than 3 characters after normalization raises CAPTION_TOO_SHORT.",
-    "caption minimum length check is not implemented",
     requires=("PIL",),
 )
 def test_caption_too_short_rejected():
@@ -180,13 +171,12 @@ def test_caption_too_short_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.CAPTION_TOO_SHORT
 
 
-@known_gap(
+@case(
     "input_pipeline.caption_too_long_rejected",
     "F3",
     "fast",
     "doc/04 §6.1, §8.2",
     "Caption with more than 1000 characters after normalization raises CAPTION_TOO_LONG.",
-    "caption maximum length check is not implemented",
     requires=("PIL",),
 )
 def test_caption_too_long_rejected():
@@ -200,13 +190,12 @@ def test_caption_too_long_rejected():
     assert getattr(excinfo.value, "code", None) == mod.InputErrorCode.CAPTION_TOO_LONG
 
 
-@known_gap(
+@case(
     "input_pipeline.caption_nfkc_normalized",
     "F3",
     "fast",
     "doc/04 §8.1",
     "Caption normalizes Unicode NFKC, collapses whitespace runs, strips edges, and emits TEXT_NORMALIZED.",
-    "caption normalization is not implemented",
     requires=("PIL",),
 )
 def test_caption_nfkc_normalized():
@@ -222,13 +211,12 @@ def test_caption_nfkc_normalized():
     assert mod.WarningCode.TEXT_NORMALIZED in req.warnings
 
 
-@known_gap(
+@case(
     "input_pipeline.rgb_conversion_alpha_flattened",
     "F3",
     "fast",
     "doc/04 §7.3",
     "RGBA image transparent background is composited over white (255, 255, 255) and emits ALPHA_FLATTENED.",
-    "alpha channel flattening is not implemented",
     requires=("PIL",),
 )
 def test_rgb_conversion_alpha_flattened():
@@ -244,13 +232,12 @@ def test_rgb_conversion_alpha_flattened():
     assert mod.WarningCode.ALPHA_FLATTENED in req.warnings
 
 
-@known_gap(
+@case(
     "input_pipeline.request_invariants",
     "F3",
     "fast",
     "doc/04 §9.2",
     "InputRequest satisfies UUID4 request_id, 64-char lowercase sha256, and timezone-aware created_at.",
-    "InputRequest schema invariants are not implemented",
     requires=("PIL",),
 )
 def test_request_invariants():

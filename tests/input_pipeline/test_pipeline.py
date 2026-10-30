@@ -6,7 +6,7 @@ degradation independence between classifier and retrieval stages, and threshold 
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _pipeline_module():
@@ -14,25 +14,23 @@ def _pipeline_module():
     return importlib.import_module("inference_pipeline")
 
 
-@known_gap(
+@case(
     "inference_pipeline.module_exists",
     "F2",
     "fast",
     "doc/04 §13",
     "The project provides an inference pipeline module managing stage execution and degradation.",
-    "there is no inference_pipeline module",
 )
 def test_pipeline_module_exists():
     _pipeline_module()
 
 
-@known_gap(
+@case(
     "inference_pipeline.status_vocabulary",
     "F2",
     "fast",
     "doc/04 §11.1",
     "ComponentStatus enum defines exactly OK, UNAVAILABLE, SKIPPED, and FAILED.",
-    "ComponentStatus enum is not defined",
 )
 def test_status_vocabulary():
     mod = _pipeline_module()
@@ -42,13 +40,12 @@ def test_status_vocabulary():
     assert names == {"OK", "UNAVAILABLE", "SKIPPED", "FAILED"}
 
 
-@known_gap(
+@case(
     "inference_pipeline.no_fabrication_rule",
     "F2",
     "fast",
     "doc/04 §11.2",
     "A non-OK component status guarantees that label, score, and probability are None (never 0.0, 0.5, or default).",
-    "no-fabrication enforcement is not implemented",
 )
 def test_no_fabrication_rule():
     mod = _pipeline_module()
@@ -59,13 +56,12 @@ def test_no_fabrication_rule():
         assert res.probability is None, "probability was fabricated under status %s" % status
 
 
-@known_gap(
+@case(
     "inference_pipeline.two_runtime_artifacts",
     "F2",
     "fast",
     "doc/04 §11.3",
     "Validation rejection produces InputRejected (no report), while valid requests always produce renderable AnalysisReport.",
-    "runtime artifact separation is not implemented",
 )
 def test_two_runtime_artifacts():
     mod = _pipeline_module()
@@ -73,13 +69,12 @@ def test_two_runtime_artifacts():
     assert hasattr(mod, "AnalysisReport")
 
 
-@known_gap(
+@case(
     "inference_pipeline.degradation_classifier_failure_retrieval_runs",
     "F2",
     "fast",
     "doc/04 §17.2",
     "A failure in the classifier head does not stop the evidence retrieval stage.",
-    "pipeline degradation independence is not implemented",
 )
 def test_degradation_classifier_failure_retrieval_runs():
     mod = _pipeline_module()
@@ -90,13 +85,12 @@ def test_degradation_classifier_failure_retrieval_runs():
     assert report.is_renderable() is True
 
 
-@known_gap(
+@case(
     "inference_pipeline.decision_rule_uncalibrated_threshold",
     "F2",
     "fast",
     "doc/04 §14.4",
     "The decision rule thresholds the uncalibrated score, making the predicted label invariant to calibration.",
-    "decision rule implementation is not implemented",
 )
 def test_decision_rule_uncalibrated_threshold():
     mod = _pipeline_module()

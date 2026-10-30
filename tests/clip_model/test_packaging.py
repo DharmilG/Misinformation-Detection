@@ -7,7 +7,7 @@ packaging gates against local absolute paths, and synthetic fixture rights.
 from pathlib import Path
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 RELEASE_FILES = {
     "release.json",
@@ -35,25 +35,23 @@ def _packaging_module():
     return importlib.import_module("classifier_packaging")
 
 
-@known_gap(
+@case(
     "packaging.module_exists",
     "F2",
     "fast",
     "doc/03 §17",
     "The project provides a packaging module to create, validate, and verify release archives.",
-    "there is no packaging module",
 )
 def test_packaging_module_exists():
     _packaging_module()
 
 
-@known_gap(
+@case(
     "packaging.release_layout_complete",
     "F2",
     "fast",
     "doc/03 §19.1",
     "The release layout contains exactly the required 9 files and directories.",
-    "release packager is not implemented",
 )
 def test_release_layout_complete(tmp_path):
     mod = _packaging_module()
@@ -61,13 +59,12 @@ def test_release_layout_complete(tmp_path):
     assert set(layout) == RELEASE_FILES
 
 
-@known_gap(
+@case(
     "packaging.copy_file_schema",
     "F2",
     "fast",
     "doc/03 §19.1.1",
     "The copy.json file contains all required non-empty explanation string keys.",
-    "copy file builder is not implemented",
 )
 def test_copy_file_schema():
     mod = _packaging_module()
@@ -78,13 +75,12 @@ def test_copy_file_schema():
         assert isinstance(copy_payload[k], str) and len(copy_payload[k].strip()) > 0, "%s is empty or not a string" % k
 
 
-@known_gap(
+@case(
     "packaging.gate_no_absolute_paths",
     "F2",
     "fast",
     "doc/03 §25",
     "Packaging Gate 3 asserts that no private local machine absolute paths are present in release metadata.",
-    "packaging path scanner gate is not implemented",
 )
 def test_gate_no_absolute_paths():
     mod = _packaging_module()
@@ -97,13 +93,12 @@ def test_gate_no_absolute_paths():
     assert mod.check_absolute_paths_gate(clean_metadata) is True
 
 
-@known_gap(
+@case(
     "packaging.gate_fixture_rights",
     "F2",
     "fast",
     "doc/03 §20.3, §25",
     "Packaging Gate 7 asserts that reference fixture samples are synthetic with committed generator.py.",
-    "fixture provenance verification is not implemented",
 )
 def test_gate_fixture_rights(tmp_path):
     mod = _packaging_module()

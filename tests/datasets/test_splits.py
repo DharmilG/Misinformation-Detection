@@ -9,7 +9,7 @@ The project distinguishes three configurations:
 from pathlib import Path
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _splits_module():
@@ -17,51 +17,47 @@ def _splits_module():
     return importlib.import_module("splits")
 
 
-@known_gap(
+@case(
     "splits.module_exists",
     "F5",
     "fast",
     "doc/02 §9",
     "The project provides a dataset splits configuration module.",
-    "there is no splits module",
 )
 def test_splits_module_exists():
     _splits_module()
 
 
-@known_gap(
+@case(
     "splits.configuration_name",
     "F5",
     "fast",
     "doc/02 §9.3",
     "The official split configuration is identified as 'newsclippings-official-v1'.",
-    "the split configuration constants are not defined",
 )
 def test_configuration_name():
     mod = _splits_module()
     assert mod.OFFICIAL_CONFIGURATION == "newsclippings-official-v1"
 
 
-@known_gap(
+@case(
     "splits.grouped_configuration_name",
     "F5",
     "fast",
     "doc/02 §9.3",
     "The grouped split configuration is identified as 'newsclippings-grouped-v1'.",
-    "the split configuration constants are not defined",
 )
 def test_grouped_configuration_name():
     mod = _splits_module()
     assert mod.GROUPED_CONFIGURATION == "newsclippings-grouped-v1"
 
 
-@known_gap(
+@case(
     "splits.dev_configuration_targets",
     "F5",
     "fast",
     "doc/02 §9.4",
     "The dev configuration defines exact targets: 2,000 train, 500 val, and 500 test samples.",
-    "the dev configuration is not defined",
 )
 def test_dev_configuration_targets():
     mod = _splits_module()
@@ -69,13 +65,12 @@ def test_dev_configuration_targets():
     assert targets == {"train": 2000, "val": 500, "test": 500}
 
 
-@known_gap(
+@case(
     "splits.dev_sampled_from_official",
     "F5",
     "fast",
     "doc/02 §9.4",
     "The dev configuration is drawn strictly from the official configuration preserving class balance.",
-    "the dev sampler is not implemented",
 )
 def test_dev_sampled_from_official():
     mod = _splits_module()
