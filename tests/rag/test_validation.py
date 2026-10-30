@@ -6,7 +6,7 @@ URL detection outside validated quotes, and retry policy.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _validation_module():
@@ -14,25 +14,23 @@ def _validation_module():
     return importlib.import_module("rag_validation")
 
 
-@known_gap(
+@case(
     "rag_validation.module_exists",
     "F2",
     "fast",
     "doc/06 §29",
     "The project provides a generation output and citation validation module.",
-    "there is no rag_validation module",
 )
 def test_validation_module_exists():
     _validation_module()
 
 
-@known_gap(
+@case(
     "rag_validation.schema_keys_and_bounds",
     "F2",
     "fast",
     "doc/06 §29.1",
     "Generation schema validates required keys, rejects unexpected keys, and bounds component/citation counts.",
-    "schema validation is not implemented",
 )
 def test_schema_keys_and_bounds():
     mod = _validation_module()
@@ -47,13 +45,12 @@ def test_schema_keys_and_bounds():
     assert mod.validate_schema(bad_output)["valid"] is False
 
 
-@known_gap(
+@case(
     "rag_validation.quote_verification_strict",
     "F2",
     "fast",
     "doc/06 §29.2",
     "Quote verification uses strict case-sensitive NFC and whitespace collapse; negations or punctuation changes fail.",
-    "strict quote verification is not implemented",
 )
 def test_quote_verification_strict():
     mod = _validation_module()
@@ -71,13 +68,12 @@ def test_quote_verification_strict():
     )
 
 
-@known_gap(
+@case(
     "rag_validation.url_scanning_outside_quotes",
     "F2",
     "fast",
     "doc/06 §29.3",
     "URLs outside validated quotes reject the generation; URLs inside verbatim quotes are permitted.",
-    "URL scan security check is not implemented",
 )
 def test_url_scanning_outside_quotes():
     mod = _validation_module()
@@ -97,13 +93,12 @@ def test_url_scanning_outside_quotes():
     assert mod.validate_generation_urls(valid_quoted_url, passages)["valid"] is True
 
 
-@known_gap(
+@case(
     "rag_validation.single_retry_policy",
     "F2",
     "fast",
     "doc/06 §29.5",
     "Schema violations allow exactly one retry with a stricter instruction before outright rejection.",
-    "validation retry policy is not implemented",
 )
 def test_single_retry_policy():
     mod = _validation_module()

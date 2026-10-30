@@ -6,7 +6,7 @@ context_sufficient requirement, component ID binding, and retention of ineligibl
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _eligibility_module():
@@ -14,25 +14,23 @@ def _eligibility_module():
     return importlib.import_module("rag_eligibility")
 
 
-@known_gap(
+@case(
     "rag_eligibility.module_exists",
     "F2",
     "fast",
     "doc/06 §28",
     "The project provides an evidence eligibility evaluation module.",
-    "there is no rag_eligibility module",
 )
 def test_eligibility_module_exists():
     _eligibility_module()
 
 
-@known_gap(
+@case(
     "rag_eligibility.five_conditions_rule",
     "F2",
     "fast",
     "doc/06 §28.1",
     "A citation is eligible only when quote verified, relation SUPPORTS/CONTRADICTS, context sufficient, and component recognized.",
-    "five-condition eligibility rule is not implemented",
 )
 def test_five_conditions_rule():
     mod = _eligibility_module()
@@ -52,13 +50,12 @@ def test_five_conditions_rule():
     assert res_pass["reason"] is None
 
 
-@known_gap(
+@case(
     "rag_eligibility.neutral_relation_ineligible",
     "F2",
     "fast",
     "doc/06 §28.1",
     "Citations with relation == NEUTRAL are marked eligible=False with reason RELATION_NEUTRAL.",
-    "neutral relation exclusion is not implemented",
 )
 def test_neutral_relation_ineligible():
     mod = _eligibility_module()
@@ -74,13 +71,12 @@ def test_neutral_relation_ineligible():
     assert res["reason"] == "RELATION_NEUTRAL"
 
 
-@known_gap(
+@case(
     "rag_eligibility.insufficient_context_ineligible",
     "F2",
     "fast",
     "doc/06 §28.1",
     "Citations with context_sufficient == False are marked eligible=False with reason INSUFFICIENT_CONTEXT.",
-    "context sufficiency filter is not implemented",
 )
 def test_insufficient_context_ineligible():
     mod = _eligibility_module()
@@ -96,13 +92,12 @@ def test_insufficient_context_ineligible():
     assert res["reason"] == "INSUFFICIENT_CONTEXT"
 
 
-@known_gap(
+@case(
     "rag_eligibility.ineligible_citations_surfaced",
     "F2",
     "fast",
     "doc/06 §28.2",
     "Ineligible citations are not deleted; they are preserved in the result with eligible=False and reason.",
-    "ineligible citation retention is not implemented",
 )
 def test_ineligible_citations_surfaced():
     mod = _eligibility_module()
