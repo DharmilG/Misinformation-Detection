@@ -6,7 +6,7 @@ claim outcome rules, reason codes, and the per-component definition of CONFLICTI
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _outcome_module():
@@ -14,25 +14,23 @@ def _outcome_module():
     return importlib.import_module("rag_outcome")
 
 
-@known_gap(
+@case(
     "rag_outcome.module_exists",
     "F2",
     "fast",
     "doc/06 §30",
     "The project provides a claim-level and component-level outcome computation module.",
-    "there is no rag_outcome module",
 )
 def test_outcome_module_exists():
     _outcome_module()
 
 
-@known_gap(
+@case(
     "rag_outcome.per_component_status_logic",
     "F2",
     "fast",
     "doc/06 §30.1",
     "Component status is CONTESTED when both sup and con exist, SUPPORTED for sup-only, and CONTRADICTED for con-only.",
-    "per-component status computation is not implemented",
 )
 def test_per_component_status_logic():
     mod = _outcome_module()
@@ -49,13 +47,12 @@ def test_per_component_status_logic():
     assert stat_unres == "UNRESOLVED"
 
 
-@known_gap(
+@case(
     "rag_outcome.all_components_supported_for_supported",
     "F2",
     "fast",
     "doc/06 §30.2",
     "A claim outcome is SUPPORTED only when EVERY component has status SUPPORTED.",
-    "claim support threshold logic is not implemented",
 )
 def test_all_components_supported_for_supported():
     mod = _outcome_module()
@@ -71,13 +68,12 @@ def test_all_components_supported_for_supported():
     assert outcome_partial["reason"] == "INSUFFICIENT_EVIDENCE"
 
 
-@known_gap(
+@case(
     "rag_outcome.conflicting_is_per_component",
     "F2",
     "fast",
     "doc/06 §30.4",
     "CONFLICTING requires eligible evidence on both sides of the SAME component, not different components.",
-    "per-component conflict rule is not implemented",
 )
 def test_conflicting_is_per_component():
     mod = _outcome_module()
@@ -92,13 +88,12 @@ def test_conflicting_is_per_component():
     assert res_same["outcome"] == "CONFLICTING"
 
 
-@known_gap(
+@case(
     "rag_outcome.no_evidence_gives_inconclusive",
     "F2",
     "fast",
     "doc/06 §30.2, §30.3",
     "No citations returns outcome INCONCLUSIVE with reason code NO_EVIDENCE.",
-    "empty citation outcome mapping is not implemented",
 )
 def test_no_evidence_gives_inconclusive():
     mod = _outcome_module()

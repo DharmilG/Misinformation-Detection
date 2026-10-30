@@ -6,7 +6,7 @@ absence of placeholder text (no 'N/A', '-', or empty strings), and generation pr
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _generation_module():
@@ -14,25 +14,23 @@ def _generation_module():
     return importlib.import_module("rag_generation")
 
 
-@known_gap(
+@case(
     "rag_generation.module_exists",
     "F2",
     "fast",
     "doc/06 §31",
     "The project provides an assessment generation and result object module.",
-    "there is no rag_generation module",
 )
 def test_generation_module_exists():
     _generation_module()
 
 
-@known_gap(
+@case(
     "rag_generation.assessment_schema_fields",
     "F2",
     "fast",
     "doc/06 §31.1",
     "Assessment dataclass defines status, outcome, outcome_source, citations, provenance, and warnings.",
-    "Assessment schema is not implemented",
 )
 def test_assessment_schema_fields():
     mod = _generation_module()
@@ -62,13 +60,12 @@ def test_assessment_schema_fields():
     assert not missing, "Assessment missing fields: %s" % missing
 
 
-@known_gap(
+@case(
     "rag_generation.per_status_invariants",
     "F2",
     "fast",
     "doc/06 §31.2",
     "When status != OK, outcome is None, outcome_source is 'none', and all prose payload fields are None.",
-    "per-status invariants are not enforced",
 )
 def test_per_status_invariants():
     mod = _generation_module()
@@ -81,13 +78,12 @@ def test_per_status_invariants():
     assert failed_assessment.error is not None
 
 
-@known_gap(
+@case(
     "rag_generation.no_placeholder_text_in_failed",
     "F2",
     "fast",
     "doc/06 §31.2",
     "Non-OK and no-evidence statuses never contain placeholder strings such as 'N/A', 'unknown', or empty strings.",
-    "no-placeholder invariant is not enforced",
 )
 def test_no_placeholder_text_in_failed():
     mod = _generation_module()

@@ -6,7 +6,7 @@ the no-evidence-no-call rule, and truncation recording.
 
 import pytest
 
-from tests.ids import case, known_gap
+from tests.ids import case
 
 
 def _assembly_module():
@@ -14,25 +14,23 @@ def _assembly_module():
     return importlib.import_module("rag_assembly")
 
 
-@known_gap(
+@case(
     "rag_assembly.module_exists",
     "F2",
     "fast",
     "doc/06 §32",
     "The project provides a prompt assembly module.",
-    "there is no rag_assembly module",
 )
 def test_assembly_module_exists():
     _assembly_module()
 
 
-@known_gap(
+@case(
     "rag_assembly.no_call_on_empty_evidence",
     "F2",
     "fast",
     "doc/06 §33.1, §34",
     "When RetrievalResult contains zero passages, the generator is not called and assembly returns None.",
-    "empty evidence prompt shortcut is not implemented",
 )
 def test_no_call_on_empty_evidence():
     mod = _assembly_module()
@@ -41,13 +39,12 @@ def test_no_call_on_empty_evidence():
     assert assembled is None, "prompt was assembled when zero evidence was retrieved"
 
 
-@known_gap(
+@case(
     "rag_assembly.bounded_context_budget",
     "F2",
     "fast",
     "doc/06 §32",
     "Assembly bounds passages to fit within the generator model context window without overflowing.",
-    "context budget bounding is not implemented",
 )
 def test_bounded_context_budget():
     mod = _assembly_module()
@@ -59,13 +56,12 @@ def test_bounded_context_budget():
     assert assembled.truncated is True
 
 
-@known_gap(
+@case(
     "rag_assembly.instruction_separation",
     "F2",
     "fast",
     "doc/06 §33.1",
     "System instructions are never assembled from retrieved passage content.",
-    "instruction separation is not enforced",
 )
 def test_instruction_separation():
     mod = _assembly_module()

@@ -1997,11 +1997,19 @@ The generator scripts are orchestration. The prompt construction, validation, el
 
 The complete cross-component interface matrix, and the prohibitions that apply to every component, are specified in `07_INTEGRATION_TESTING.md` §11.
 
-## 50. Immediate next step
+## 50. Implementation status and next step
 
-Implement `src/rag/` against this contract, beginning with `schema.py`, `eligibility.py`, and `outcome.py` — the parts that are fully testable without a model — then `prompts.py`, `assembly.py`, and `validation.py`. Benchmark the model candidates per §24, record the results in §24.5, and fill in the measured evaluation figures in §39.
+The deterministic RAG contract is implemented in the repository's current
+`src/rag/` modules: prompt construction and bounded assembly, strict output and
+quote validation, eligibility, component-level outcomes, injection defenses,
+assessment result invariants, and separated RAG/non-RAG evaluation metrics.
+The local generator remains a pluggable deterministic interface; no model
+candidate is selected or presented as benchmarked.
 
-The next specification after this one is `05_REPORTING_AND_UI.md`.
+The next step is to provide a labeled dev/test evaluation manifest, benchmark
+the model candidates per §24, record the results in §24.5, and fill in the
+measured evaluation figures in §39. Until those artifacts exist, no evaluation
+score is claimed.
 
 ## 51. Immediate next step
 
