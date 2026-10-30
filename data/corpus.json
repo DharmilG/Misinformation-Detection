@@ -1,0 +1,68 @@
+[
+  {
+    "passage_id": "p001",
+    "title": "Fact-check: Viral photo misidentifies location of 2023 earthquake",
+    "source_name": "GlobalFactWatch",
+    "source_type": "fact-checking outlet",
+    "published_at": "2023-02-10",
+    "excerpt": "A photo widely shared on social media claiming to show the aftermath of the 2023 Turkey-Syria earthquake was actually taken during a 2019 demolition in a different country. The image has been misrepresented and is misleading. Investigators found no evidence connecting the photograph to the reported event.",
+    "url": "https://example-factwatch.org/articles/earthquake-photo-misidentified",
+    "rights_wording": "Excerpt reproduced for research purposes.",
+    "storage_scope": "excerpt"
+  },
+  {
+    "passage_id": "p002",
+    "title": "Official statement: Government confirms flood response operations",
+    "source_name": "Ministry of Disaster Management",
+    "source_type": "government release",
+    "published_at": "2023-09-04",
+    "excerpt": "The Ministry of Disaster Management confirmed that emergency response teams have been deployed to all affected districts following the flooding. Official figures reported 12,000 people displaced. The government announced relief operations are ongoing and documented all affected areas.",
+    "url": "https://example-ministry.gov/press/flood-response-2023",
+    "rights_wording": null,
+    "storage_scope": null
+  },
+  {
+    "passage_id": "p003",
+    "title": "Analysis: Out-of-context imagery on social media during crises",
+    "source_name": "Digital Media Research Centre",
+    "source_type": "academic report",
+    "published_at": "2022-11-15",
+    "excerpt": "Researchers found that during major crisis events, previously unrelated photographs are frequently repurposed and shared with false captions. This phenomenon of out-of-context imagery is a common form of visual misinformation. Studies show that images from past disasters are often relabelled and recirculated. The caption attached to an image does not reliably describe its true origin.",
+    "url": null,
+    "rights_wording": "Excerpt from open-access publication.",
+    "storage_scope": "excerpt"
+  },
+  {
+    "passage_id": "p004",
+    "title": "Crowd event at stadium: accurate reporting",
+    "source_name": "City Sports Authority",
+    "source_type": "official record",
+    "published_at": "2023-06-20",
+    "excerpt": "The stadium hosted an officially documented gathering on June 20th. According to reports, approximately 45,000 attendees were present. The event was confirmed by the city authority and broadcast media. The image released by the authority shows the main stand at capacity.",
+    "url": "https://example-sportsauthority.org/events/june-2023",
+    "rights_wording": null,
+    "storage_scope": "citation_metadata"
+  },
+  {
+    "passage_id": "p005",
+    "title": "Debunked: Fabricated quote attributed to public official",
+    "source_name": "PressVerify",
+    "source_type": "fact-checking outlet",
+    "published_at": null,
+    "excerpt": "A quote attributed to the Prime Minister regarding immigration policy has been identified as fabricated. No such statement appears in any official press release, transcript, or verified media coverage. The quote is false and should not be treated as an authentic statement. Multiple fact-checkers have debunked this claim.",
+    "url": "https://example-pressverify.org/debunked/fabricated-quote",
+    "rights_wording": null,
+    "storage_scope": null
+  },
+  {
+    "passage_id": "p006",
+    "title": "Climate report: Record temperatures documented",
+    "source_name": "National Weather Service",
+    "source_type": "scientific agency",
+    "published_at": "2023-08-01",
+    "excerpt": "The National Weather Service confirmed record high temperatures in multiple regions during July 2023. Data published in the agency's monthly bulletin shows temperatures 3.2 degrees Celsius above the historical average. The documented evidence supports claims of extreme heat events during this period.",
+    "url": null,
+    "rights_wording": "Government data, public domain.",
+    "storage_scope": null
+  }
+]
