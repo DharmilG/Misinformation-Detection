@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 
 import pytest
 
+from tests.ids import case
+
 from src.reporting import copy as C
 from src.reporting.comparison import PERMANENT_NOTE
 from src.reporting.model import (
@@ -186,6 +188,7 @@ def _make_report(
 
 class TestNoDependency:
 
+    @case("reporting.text_render.test_text_render_does_not_import_streamlit.1", "F2", "fast", "doc/05 ?18", "test text render does not import streamlit")
     def test_text_render_does_not_import_streamlit(self) -> None:
         """render_report_text must have zero Streamlit imports."""
         import src.reporting.text_render as mod
@@ -194,6 +197,7 @@ class TestNoDependency:
         assert "from streamlit" not in source
         assert "import st" not in source
 
+    @case("reporting.text_render.test_text_render_has_no_io.2", "F2", "fast", "doc/05 ?18", "test text render has no io")
     def test_text_render_has_no_io(self) -> None:
         """Must not open files or write to disk."""
         import src.reporting.text_render as mod
@@ -206,11 +210,13 @@ class TestNoDependency:
 
 class TestOutputCompleteness:
 
+    @case("reporting.text_render.test_returns_non_empty_string.3", "F2", "fast", "doc/05 ?18", "test returns non empty string")
     def test_returns_non_empty_string(self) -> None:
         text = render_report_text(_make_report())
         assert isinstance(text, str)
         assert len(text) > 100
 
+    @case("reporting.text_render.test_contains_all_section_headings.4", "F2", "fast", "doc/05 ?18", "test contains all section headings")
     def test_contains_all_section_headings(self) -> None:
         text = render_report_text(_make_report())
         for heading in [
@@ -219,6 +225,7 @@ class TestOutputCompleteness:
         ]:
             assert heading in text, f"Missing heading: {heading}"
 
+    @case("reporting.text_render.test_not_a_truth_claim_always_present.5", "F2", "fast", "doc/05 ?18", "test not a truth claim always present")
     def test_not_a_truth_claim_always_present(self) -> None:
         """§9.1 level 1 — always visible."""
         for clf in [_clf_ok(), _clf_unavailable()]:
@@ -227,22 +234,26 @@ class TestOutputCompleteness:
                 f"NOT_A_TRUTH_CLAIM missing for clf.status={clf.status}"
             )
 
+    @case("reporting.text_render.test_scope_qualifier_always_present_when_asm_ok.6", "F2", "fast", "doc/05 ?18", "test scope qualifier always present when asm ok")
     def test_scope_qualifier_always_present_when_asm_ok(self) -> None:
         """§9.1 level 2 — always visible when assessment is OK."""
         text = render_report_text(_make_report(asm=_asm_ok()))
         assert C.SCOPE_QUALIFIER in text
 
+    @case("reporting.text_render.test_permanent_note_always_present.7", "F2", "fast", "doc/05 ?18", "test permanent note always present")
     def test_permanent_note_always_present(self) -> None:
         """§8.4 — permanent note in every rendered comparison state."""
         text = render_report_text(_make_report())
         assert PERMANENT_NOTE in text
 
+    @case("reporting.text_render.test_system_limitations_all_rendered.8", "F2", "fast", "doc/05 ?18", "test system limitations all rendered")
     def test_system_limitations_all_rendered(self) -> None:
         lims = ("Limitation alpha.", "Limitation beta.")
         text = render_report_text(_make_report(limitations=lims))
         for lim in lims:
             assert lim in text
 
+    @case("reporting.text_render.test_no_combined_verdict.9", "F2", "fast", "doc/05 ?18", "test no combined verdict")
     def test_no_combined_verdict(self) -> None:
         """Never merge classifier + assessment into a single verdict."""
         text = render_report_text(_make_report())
@@ -256,36 +267,42 @@ class TestOutputCompleteness:
 
 class TestNullMetadata:
 
+    @case("reporting.text_render.test_null_date_renders_no_date_string.10", "F2", "fast", "doc/05 ?18", "test null date renders no date string")
     def test_null_date_renders_no_date_string(self) -> None:
         p = _passage(published_at=None)
         ev = _ev_ok(passages=(p,))
         text = render_report_text(_make_report(ev=ev))
         assert C.NO_DATE in text
 
+    @case("reporting.text_render.test_null_url_renders_no_url_string.11", "F2", "fast", "doc/05 ?18", "test null url renders no url string")
     def test_null_url_renders_no_url_string(self) -> None:
         p = _passage(url=None)
         ev = _ev_ok(passages=(p,))
         text = render_report_text(_make_report(ev=ev))
         assert C.NO_URL in text
 
+    @case("reporting.text_render.test_invalid_url_not_rendered_as_link.12", "F2", "fast", "doc/05 ?18", "test invalid url not rendered as link")
     def test_invalid_url_not_rendered_as_link(self) -> None:
         p = _passage(url="javascript:evil()")
         ev = _ev_ok(passages=(p,))
         text = render_report_text(_make_report(ev=ev))
         assert "javascript:" not in text
 
+    @case("reporting.text_render.test_storage_scope_excerpt_rendered_when_present.13", "F2", "fast", "doc/05 ?18", "test storage scope excerpt rendered when present")
     def test_storage_scope_excerpt_rendered_when_present(self) -> None:
         p = _passage(storage_scope="excerpt")
         ev = _ev_ok(passages=(p,))
         text = render_report_text(_make_report(ev=ev))
         assert C.STORAGE_EXCERPT in text
 
+    @case("reporting.text_render.test_storage_scope_citation_rendered_when_present.14", "F2", "fast", "doc/05 ?18", "test storage scope citation rendered when present")
     def test_storage_scope_citation_rendered_when_present(self) -> None:
         p = _passage(storage_scope="citation_metadata")
         ev = _ev_ok(passages=(p,))
         text = render_report_text(_make_report(ev=ev))
         assert C.STORAGE_CITATION in text
 
+    @case("reporting.text_render.test_storage_scope_none_not_rendered.15", "F2", "fast", "doc/05 ?18", "test storage scope none not rendered")
     def test_storage_scope_none_not_rendered(self) -> None:
         p = _passage(storage_scope=None)
         ev = _ev_ok(passages=(p,))
@@ -298,6 +315,7 @@ class TestNullMetadata:
 
 class TestEmptyEvidence:
 
+    @case("reporting.text_render.test_exact_empty_evidence_wording.16", "F2", "fast", "doc/05 ?18", "test exact empty evidence wording")
     def test_exact_empty_evidence_wording(self) -> None:
         """§6.3 — exact required wording when nothing was retrieved."""
         ev = _ev_ok(passages=())
@@ -309,6 +327,7 @@ class TestEmptyEvidence:
 
 class TestRelevanceLabel:
 
+    @case("reporting.text_render.test_relevance_labelled_as_ranking_value.17", "F2", "fast", "doc/05 ?18", "test relevance labelled as ranking value")
     def test_relevance_labelled_as_ranking_value(self) -> None:
         p = _passage()
         ev = _ev_ok(passages=(p,))
@@ -320,14 +339,17 @@ class TestRelevanceLabel:
 
 class TestDegradedStates:
 
+    @case("reporting.text_render.test_classifier_unavailable_renders_status.18", "F2", "fast", "doc/05 ?18", "test classifier unavailable renders status")
     def test_classifier_unavailable_renders_status(self) -> None:
         text = render_report_text(_make_report(clf=_clf_unavailable()))
         assert "UNAVAILABLE" in text
 
+    @case("reporting.text_render.test_evidence_unavailable_renders_status.19", "F2", "fast", "doc/05 ?18", "test evidence unavailable renders status")
     def test_evidence_unavailable_renders_status(self) -> None:
         text = render_report_text(_make_report(ev=_ev_unavailable()))
         assert "UNAVAILABLE" in text
 
+    @case("reporting.text_render.test_assessment_unavailable_renders_status.20", "F2", "fast", "doc/05 ?18", "test assessment unavailable renders status")
     def test_assessment_unavailable_renders_status(self) -> None:
         text = render_report_text(_make_report(asm=_asm_unavailable()))
         assert "UNAVAILABLE" in text
@@ -337,6 +359,7 @@ class TestDegradedStates:
 
 class TestMarkdownInjection:
 
+    @case("reporting.text_render.test_malicious_caption_escaped.21", "F2", "fast", "doc/05 ?18", "test malicious caption escaped")
     def test_malicious_caption_escaped(self) -> None:
         inp = _inp(caption="# Injected heading\n**bold**\n[link](http://evil.com)")
         text = render_report_text(_make_report(inp=inp))

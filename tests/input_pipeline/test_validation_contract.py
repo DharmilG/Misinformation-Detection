@@ -11,6 +11,8 @@ import io
 from PIL import Image
 import pytest
 
+from tests.ids import case
+
 from src.input_pipeline.validation import (
     ValidationError,
     build_input_request,
@@ -31,6 +33,7 @@ def _make_dummy_image_bytes(
 
 
 class TestInputValidation:
+    @case("input.test_valid_input_succeeds.1", "F2", "fast", "doc/04 ?11", "test valid input succeeds")
     def test_valid_input_succeeds(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         req, warnings, errors = build_input_request(
@@ -46,6 +49,7 @@ class TestInputValidation:
         assert req.caption.original == "This is a valid test caption for testing."
         assert req.caption.normalized == "This is a valid test caption for testing."
 
+    @case("input.test_corrupt_image_fails.2", "F2", "fast", "doc/04 ?11", "test corrupt image fails")
     def test_corrupt_image_fails(self) -> None:
         req, warnings, errors = build_input_request(
             b"not a real image stream",
@@ -55,6 +59,7 @@ class TestInputValidation:
         assert req is None
         assert any(e.code == "IMAGE_CORRUPT" for e in errors)
 
+    @case("input.test_image_too_large_fails.3", "F2", "fast", "doc/04 ?11", "test image too large fails")
     def test_image_too_large_fails(self) -> None:
         huge_bytes = b"0" * (MAX_IMAGE_BYTES + 1024)
         req, warnings, errors = build_input_request(
@@ -65,6 +70,7 @@ class TestInputValidation:
         assert req is None
         assert any(e.code == "IMAGE_TOO_LARGE" for e in errors)
 
+    @case("input.test_caption_too_short_fails.4", "F2", "fast", "doc/04 ?11", "test caption too short fails")
     def test_caption_too_short_fails(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         req, warnings, errors = build_input_request(
@@ -75,6 +81,7 @@ class TestInputValidation:
         assert req is None
         assert any(e.code == "CAPTION_TOO_SHORT" for e in errors)
 
+    @case("input.test_empty_caption_fails.5", "F2", "fast", "doc/04 ?11", "test empty caption fails")
     def test_empty_caption_fails(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         req, warnings, errors = build_input_request(
@@ -85,6 +92,7 @@ class TestInputValidation:
         assert req is None
         assert any(e.code == "CAPTION_TOO_SHORT" for e in errors)
 
+    @case("input.test_caption_too_long_fails.6", "F2", "fast", "doc/04 ?11", "test caption too long fails")
     def test_caption_too_long_fails(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         long_cap = "a" * (MAX_CAPTION_CHARS + 10)
@@ -96,6 +104,7 @@ class TestInputValidation:
         assert req is None
         assert any(e.code == "CAPTION_TOO_LONG" for e in errors)
 
+    @case("input.test_alpha_flattened_warning.7", "F2", "fast", "doc/04 ?11", "test alpha flattened warning")
     def test_alpha_flattened_warning(self) -> None:
         img_bytes = _make_dummy_image_bytes(mode="RGBA", fmt="PNG")
         req, warnings, errors = build_input_request(
@@ -107,6 +116,7 @@ class TestInputValidation:
         assert req is not None
         assert "ALPHA_FLATTENED" in warnings
 
+    @case("input.test_image_downscaled_warning.8", "F2", "fast", "doc/04 ?11", "test image downscaled warning")
     def test_image_downscaled_warning(self) -> None:
         img_bytes = _make_dummy_image_bytes(width=1600, height=1200)
         req, warnings, errors = build_input_request(
@@ -118,6 +128,7 @@ class TestInputValidation:
         assert req is not None
         assert "IMAGE_DOWNSCALED" in warnings
 
+    @case("input.test_text_normalized_warning.9", "F2", "fast", "doc/04 ?11", "test text normalized warning")
     def test_text_normalized_warning(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         req, warnings, errors = build_input_request(
@@ -131,6 +142,7 @@ class TestInputValidation:
         assert req.caption.normalized == "Lots of spaces here"
         assert req.caption.original == "  Lots   of    spaces   here  "
 
+    @case("input.test_caption_truncated_for_clip_warning.10", "F2", "fast", "doc/04 ?11", "test caption truncated for clip warning")
     def test_caption_truncated_for_clip_warning(self) -> None:
         img_bytes = _make_dummy_image_bytes()
         # 85 words, exceeds 77
