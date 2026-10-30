@@ -1,1 +1,3 @@
-"""Package marker for the test suite."""
+"""
+tests/__init__.py
+"""

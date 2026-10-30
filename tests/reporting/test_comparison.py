@@ -113,13 +113,12 @@ def test_comparison_wording_no_forbidden_terms():
             assert term not in sentence, f"Forbidden term '{term}' found in {state} sentence: {sentence}"
 
 
-@known_gap(
+@case(
     "comparison.permanent_note_present",
     "F2",
     "fast",
     "doc/05 §8.4",
     "Comparison section always includes the permanent note: 'Two signals pointing the same way does not make either one correct.'",
-    "comparison permanent note is not yet implemented",
 )
 def test_comparison_permanent_note_present():
     mod = _comparison_module()

@@ -40,13 +40,12 @@ def test_overview_unchanged():
     )
 
 
-@known_gap(
+@case(
     "docs.requirements_pinned",
     "F10",
     "fast",
     "doc/00 §11.1, doc/01 §4.2",
     "The runtime requirements pin their versions, so a run is reproducible.",
-    "the requirements are unpinned",
 )
 def test_requirements_pinned():
     requirements = ROOT / "requirements.txt"

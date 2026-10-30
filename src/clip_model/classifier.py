@@ -7,12 +7,124 @@ model creation, operating threshold selection, and prediction functions.
 from __future__ import annotations
 
 from collections.abc import Sequence
+import io
+import uuid
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+
+from src.utils.config import (
+    CLASSIFIER_THRESHOLD,
+    ENCODER_REVISION,
+    FEATURE_CONTRACT_VERSION,
+    MODEL_VERSION,
+)
+
+try:
+    import open_clip
+    from PIL import Image
+    _OPEN_CLIP_AVAILABLE = True
+except ImportError:
+    _OPEN_CLIP_AVAILABLE = False
+
+
+@dataclass(frozen=True)
+class ClassifierResult:
+    status: str
+    run_id: str
+    model_version: str
+    encoder_revision: str
+    feature_contract_version: str
+    label: str | None = None
+    score: float | None = None
+    calibrated_probability: float | None = None
+    calibration_status: str = "NOT_APPLIED"
+    score_definition: str = (
+        "Cosine similarity between CLIP image and text embeddings, mapped to [0, 1]. "
+        "Values at or above the configured threshold are labelled MATCHED; "
+        "below it as MISMATCHED."
+    )
+    reason: str | None = None
+    remedy: str | None = None
+    error_detail: str | None = None
+
+
+_model = None
+_preprocess = None
+_tokenizer = None
+
+
+def _load_model() -> bool:
+    global _model, _preprocess, _tokenizer
+    if _model is not None:
+        return True
+    if not _OPEN_CLIP_AVAILABLE:
+        return False
+    try:
+        _model, _, _preprocess = open_clip.create_model_and_transforms(
+            "ViT-B-32",
+            pretrained="laion2b_s34b_b79k",
+        )
+        _model.eval()
+        _tokenizer = open_clip.get_tokenizer("ViT-B-32")
+        return True
+    except Exception:
+        return False
+
+
+def run_classifier(
+    image_bytes: bytes,
+    caption_normalized: str,
+) -> ClassifierResult:
+    run_id = str(uuid.uuid4())
+    common = {
+        "run_id": run_id,
+        "model_version": MODEL_VERSION,
+        "encoder_revision": ENCODER_REVISION,
+        "feature_contract_version": FEATURE_CONTRACT_VERSION,
+    }
+
+    if not _OPEN_CLIP_AVAILABLE or not _load_model():
+        return ClassifierResult(
+            status="UNAVAILABLE",
+            reason="The CLIP classifier dependencies or model weights are unavailable.",
+            remedy="Install the requirements and ensure model weights are accessible.",
+            **common,
+        )
+
+    try:
+        assert _model is not None
+        assert _preprocess is not None
+        assert _tokenizer is not None
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        image_tensor = _preprocess(image).unsqueeze(0)
+        text_tokens = _tokenizer([caption_normalized])
+        with torch.no_grad():
+            image_features = _model.encode_image(image_tensor)
+            text_features = _model.encode_text(text_tokens)
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+            similarity = (image_features @ text_features.T).item()
+        score = float(max(0.0, min(1.0, (similarity + 1.0) / 2.0)))
+        return ClassifierResult(
+            status="OK",
+            label="MATCHED" if score >= CLASSIFIER_THRESHOLD else "MISMATCHED",
+            score=round(score, 4),
+            **common,
+        )
+    except Exception as exc:
+        return ClassifierResult(
+            status="FAILED",
+            reason="An error occurred during classifier inference.",
+            error_detail=str(exc),
+            remedy="Check the application logs for details.",
+            **common,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Candidate families (doc/03 §4.1)
