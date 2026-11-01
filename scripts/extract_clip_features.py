@@ -35,6 +35,9 @@ def extract_split(
     if not records:
         raise ValueError(f"{split}.csv is empty")
     extractor = CLIPFeatureExtractor(device=device)
+    destination = output_root / split
+    partial = destination / ".partial"
+    partial.mkdir(parents=True, exist_ok=True)
     image_features: list[np.ndarray] = []
     text_features: list[np.ndarray] = []
     labels: list[int] = []
@@ -42,16 +45,34 @@ def extract_split(
 
     for start in range(0, len(records), batch_size):
         batch = records[start:start + batch_size]
-        pairs = [(dataset_root / row["image_path"], row["caption"]) for row in batch]
-        features = extractor.encode_batch(pairs, device=device)
-        image_features.append(features["image_features"].numpy().astype(np.float32))
-        text_features.append(features["text_features"].numpy().astype(np.float32))
-        labels.extend(int(row["label"]) for row in batch)
-        sample_ids.extend(f"{row['caption_id']}:{row['image_id']}" for row in batch)
+        batch_id = start // batch_size
+        batch_file = partial / f"batch_{batch_id:06d}.npz"
+        if batch_file.is_file():
+            saved = np.load(batch_file, allow_pickle=False)
+            image_features.append(saved["image"])
+            text_features.append(saved["text"])
+            labels.extend(saved["labels"].tolist())
+            sample_ids.extend(saved["sample_ids"].tolist())
+        else:
+            pairs = [(dataset_root / row["image_path"], row["caption"]) for row in batch]
+            features = extractor.encode_batch(pairs, device=device)
+            image = features["image_features"].numpy().astype(np.float32)
+            text = features["text_features"].numpy().astype(np.float32)
+            batch_labels = np.asarray([int(row["label"]) for row in batch], dtype=np.int64)
+            batch_ids = np.asarray(
+                [f"{row['caption_id']}:{row['image_id']}" for row in batch],
+                dtype="U",
+            )
+            temporary = batch_file.with_suffix(".npz.tmp")
+            with temporary.open("wb") as handle:
+                np.savez(handle, image=image, text=text, labels=batch_labels, sample_ids=batch_ids)
+            temporary.replace(batch_file)
+            image_features.append(image)
+            text_features.append(text)
+            labels.extend(batch_labels.tolist())
+            sample_ids.extend(batch_ids.tolist())
         print(f"{split}: {min(start + batch_size, len(records))}/{len(records)}", flush=True)
 
-    destination = output_root / split
-    destination.mkdir(parents=True, exist_ok=True)
     np.save(destination / "image_embeddings.npy", np.concatenate(image_features))
     np.save(destination / "text_embeddings.npy", np.concatenate(text_features))
     np.save(destination / "labels.npy", np.asarray(labels, dtype=np.int64))
@@ -66,6 +87,9 @@ def extract_split(
         "feature_dim": int(image_features[0].shape[-1]),
     }
     (destination / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    for batch_file in partial.glob("batch_*.npz"):
+        batch_file.unlink()
+    partial.rmdir()
     return destination
 
 
