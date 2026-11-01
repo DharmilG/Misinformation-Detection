@@ -53,7 +53,11 @@ class CLIPFeatureExtractor:
             CLIPFeatureExtractor._cached_model = model
 
         self.processor = CLIPFeatureExtractor._cached_processor
-        self.model = CLIPFeatureExtractor._cached_model
+        if hasattr(CLIPFeatureExtractor._cached_model, "to"):
+            self.model = CLIPFeatureExtractor._cached_model.to(self.device)
+        else:
+            self.model = CLIPFeatureExtractor._cached_model
+        self.model.eval()
 
         self.info = EncoderInfo(
             model_id=self.model_name,
@@ -104,6 +108,7 @@ class CLIPFeatureExtractor:
 
             dev = device or self.device
             target_device = torch.device(dev) if isinstance(dev, str) else dev
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
 
             with torch.no_grad():
                 outputs = self.model(**inputs)
@@ -132,6 +137,8 @@ class CLIPFeatureExtractor:
                     loaded_images.append(img)
 
             inputs = self.processor(images=loaded_images, return_tensors="pt")
+            target_device = torch.device(device or self.device)
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_image_features(**inputs)
             return outputs.cpu()
@@ -152,6 +159,8 @@ class CLIPFeatureExtractor:
                 truncation=True,
                 max_length=77,
             )
+            target_device = torch.device(device or self.device)
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_text_features(**inputs)
             return outputs.cpu()
