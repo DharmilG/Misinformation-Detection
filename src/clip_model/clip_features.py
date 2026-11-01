@@ -141,6 +141,10 @@ class CLIPFeatureExtractor:
             inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_image_features(**inputs)
+
+            if hasattr(outputs, "pooler_output"):
+                outputs = outputs.pooler_output
+
             return outputs.cpu()
         except Exception as exc:
             raise FeatureExtractionError(f"encode_images failed: {exc}") from exc
@@ -163,6 +167,8 @@ class CLIPFeatureExtractor:
             inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_text_features(**inputs)
+            if hasattr(outputs, "pooler_output"):
+                outputs = outputs.pooler_output
             return outputs.cpu()
         except Exception as exc:
             raise FeatureExtractionError(f"encode_texts failed: {exc}") from exc

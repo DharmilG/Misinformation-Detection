@@ -68,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=ROOT / "models" / "checkpoint")
     parser.add_argument("--candidate", choices=("A", "B", "C", "D-B", "D-C"), default="D-C")
     parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    parser.add_argument("--checkpoint", type=Path, default=None,
+                        help="Save an atomic resumable training checkpoint after each epoch.")
+    parser.add_argument("--resume", type=Path, default=None,
+                        help="Resume from a checkpoint created by --checkpoint.")
     args = parser.parse_args(argv)
     if args.epochs < 1:
         parser.error("--epochs must be positive")
@@ -76,7 +81,12 @@ def main(argv: list[str] | None = None) -> int:
     val = _prepare_dataset(args.features_root, "val", args.candidate)
     test = _prepare_dataset(args.features_root, "test", args.candidate)
     model = create_model(args.candidate)
-    config = {"epoch_cap": args.epochs}
+    config = {
+        "epoch_cap": args.epochs,
+        "device": args.device,
+        "checkpoint_path": str(args.checkpoint) if args.checkpoint else None,
+        "resume_path": str(args.resume) if args.resume else None,
+    }
     model, training_summary = train_classifier(
         model, train, val,
         class_weights=compute_class_weights(train.class_counts()),

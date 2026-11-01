@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import random
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -184,6 +185,8 @@ def train_classifier(
         lr=cfg["learning_rate"],
         weight_decay=cfg["weight_decay"],
     )
+    checkpoint_path = cfg.get("checkpoint_path")
+    resume_path = cfg.get("resume_path")
 
     train_loader = DataLoader(
         train_dataset,
@@ -203,11 +206,22 @@ def train_classifier(
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
     patience_counter = 0
+    start_epoch = 1
+
+    if resume_path:
+        state = torch.load(resume_path, map_location=device, weights_only=True)
+        model.load_state_dict(state["model"])
+        optimizer.load_state_dict(state["optimizer"])
+        best_weights = state["best_weights"]
+        best_macro_f1 = float(state["best_macro_f1"])
+        best_epoch = int(state["best_epoch"])
+        patience_counter = int(state["patience_counter"])
+        start_epoch = int(state["epoch"]) + 1
 
     patience = cfg["early_stopping_patience"]
     min_delta = cfg["early_stopping_min_delta"]
 
-    for epoch in range(1, cfg["epoch_cap"] + 1):
+    for epoch in range(start_epoch, cfg["epoch_cap"] + 1):
         model.train()
         for batch in train_loader:
             feats, labels, _ = batch
@@ -242,8 +256,25 @@ def train_classifier(
             patience_counter = 0
         else:
             patience_counter += 1
-            if patience_counter >= patience:
-                break
+
+        if checkpoint_path:
+            target = Path(checkpoint_path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_suffix(target.suffix + ".tmp")
+            torch.save({
+                "epoch": epoch,
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "best_weights": best_weights,
+                "best_macro_f1": best_macro_f1,
+                "best_epoch": best_epoch,
+                "patience_counter": patience_counter,
+                "seed": seed,
+            }, temporary)
+            temporary.replace(target)
+
+        if patience_counter >= patience:
+            break
 
     # Restore best checkpoint
     model.load_state_dict(best_weights)
