@@ -1622,7 +1622,7 @@ The genuine data path is:
 .\.venv\Scripts\python.exe scripts\train_classifier.py
 ```
 
-The extractor reads the audited split CSVs and writes aligned frozen-CLIP embeddings, labels, sample IDs, and provenance metadata under `data/features/`. Training refuses to proceed when any split cache is absent or misaligned, selects its operating threshold from validation predictions, and evaluates the held-out test split only after training.
+The extractor reads the audited split CSVs and writes aligned frozen-CLIP embeddings, labels, sample IDs, and provenance metadata under `data/features/` by default, or under the local `dataset/data/features/` layout when that dataset tree is present. Training refuses to proceed when any split cache is absent or misaligned, selects its operating threshold from validation predictions, and evaluates the held-out test split only after training. The dashboard resolves the trained checkpoint from `dataset/models/checkpoint/` when present; `MISINFO_CHECKPOINT_PATH` can override that location without copying large artifacts into Git.
 
 ---
 

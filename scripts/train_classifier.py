@@ -64,8 +64,14 @@ def _predict(model: torch.nn.Module, dataset: FeaturePairDataset) -> tuple[np.nd
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--features-root", type=Path, default=ROOT / "data" / "features")
-    parser.add_argument("--output", type=Path, default=ROOT / "models" / "checkpoint")
+    default_features = ROOT / "dataset" / "data" / "features"
+    if not default_features.parent.is_dir():
+        default_features = ROOT / "data" / "features"
+    default_output = ROOT / "dataset" / "models" / "checkpoint"
+    if not default_output.parent.is_dir():
+        default_output = ROOT / "models" / "checkpoint"
+    parser.add_argument("--features-root", type=Path, default=default_features)
+    parser.add_argument("--output", type=Path, default=default_output)
     parser.add_argument("--candidate", choices=("A", "B", "C", "D-B", "D-C"), default="D-C")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")

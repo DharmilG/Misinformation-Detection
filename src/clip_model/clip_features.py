@@ -14,8 +14,12 @@ from PIL import Image
 import torch
 from transformers import CLIPModel, CLIPProcessor
 
-from constants import MODEL_ID, MODEL_REVISION
-from errors import DeviceUnavailableError, FeatureExtractionError
+try:
+    from .constants import MODEL_ID, MODEL_REVISION
+    from .errors import DeviceUnavailableError, FeatureExtractionError
+except ImportError:
+    from constants import MODEL_ID, MODEL_REVISION
+    from errors import DeviceUnavailableError, FeatureExtractionError
 
 
 @dataclass(frozen=True)
@@ -89,13 +93,19 @@ class CLIPFeatureExtractor:
         image: Image.Image | str | Path,
         text: str,
         device: str | None = None,
-    ) -> dict[str, torch.Tensor]:
+    ) -> dict[str, Any]:
         """Encode a single image and text caption."""
         try:
             if isinstance(image, (str, Path)):
                 img = Image.open(image).convert("RGB")
             else:
                 img = image
+
+            # Tokenize without truncation to get original token count
+            raw_tokens = self.processor.tokenizer(
+                [text], add_special_tokens=True,
+            )
+            original_token_count = len(raw_tokens["input_ids"][0])
 
             inputs = self.processor(
                 images=img,
@@ -105,6 +115,10 @@ class CLIPFeatureExtractor:
                 truncation=True,
                 max_length=77,
             )
+
+            # Count actual tokens fed (attention_mask sum includes BOS+EOT)
+            token_count = int(inputs["attention_mask"][0].sum().item())
+            truncated = original_token_count > 77
 
             dev = device or self.device
             target_device = torch.device(dev) if isinstance(dev, str) else dev
@@ -118,6 +132,9 @@ class CLIPFeatureExtractor:
             return {
                 "image_features": image_features.cpu(),
                 "text_features": text_features.cpu(),
+                "text_token_count": token_count,
+                "text_original_token_count": original_token_count,
+                "text_truncated": truncated,
             }
         except Exception as exc:
             raise FeatureExtractionError(f"encode_pair failed: {exc}") from exc

@@ -176,7 +176,10 @@ def extract_split(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset-root", type=Path, default=ROOT / "dataset" / "ooc_dataset")
-    parser.add_argument("--output-root", type=Path, default=ROOT / "data" / "features")
+    default_features = ROOT / "dataset" / "data" / "features"
+    if not default_features.parent.is_dir():
+        default_features = ROOT / "data" / "features"
+    parser.add_argument("--output-root", type=Path, default=default_features)
     parser.add_argument("--splits", nargs="+", choices=("train", "val", "test"), default=("train", "val", "test"))
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--device", default=None)

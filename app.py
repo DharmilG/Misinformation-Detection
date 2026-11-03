@@ -28,7 +28,7 @@ from typing import Optional
 import streamlit as st
 from PIL import Image
 
-from src.clip_model.classifier import run_classifier
+from src.clip_model.classifier import run_trained_classifier
 from src.input_pipeline.validation import ValidationError, build_input_request
 from src.rag.assessment import run_assessment
 from src.reporting import copy as C
@@ -760,7 +760,7 @@ def run_pipeline(image_bytes: bytes, filename: str, caption: str, request_id: Op
     st.session_state.input_errors = []
 
     # 2. Classifier (CLIP)
-    clf_result = run_classifier(req.image.processed_bytes, req.caption.normalized)
+    clf_result = run_trained_classifier(req.image.processed_bytes, req.caption.normalized)
 
     # 3. Retrieval (TF-IDF over corpus)
     retrieval_result = retrieve_passages(req.caption.normalized)
@@ -827,6 +827,7 @@ nav_options = [
     C.H_REPORT,
     C.H_EVIDENCE,
     C.H_METHODOLOGY,
+    C.H_PERFORMANCE,
     C.H_PRIVACY,
 ]
 
@@ -1513,7 +1514,123 @@ elif page == C.H_METHODOLOGY:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# PAGE 5: PRIVACY & DATA HANDLING
+# PAGE 5: MODEL PERFORMANCE
+# ══════════════════════════════════════════════════════════════════════════
+elif page == C.H_PERFORMANCE:
+    st.markdown(
+        """
+        <div class='eyebrow'>Classifier Evaluation</div>
+        <div class='header-title'>Model Performance</div>
+        <div class='header-desc'>
+            Trained on the D-C candidate with frozen CLIP interaction features.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Load metrics
+    _metrics_path = pathlib.Path("dataset/models/checkpoint/metrics.json")
+    _audit_path = pathlib.Path("reports/dataset_audit.json")
+    _rag_eval_path = pathlib.Path("reports/rag_non_rag_eval.json")
+
+    if _metrics_path.is_file():
+        _metrics = json.loads(_metrics_path.read_text(encoding="utf-8"))
+
+        # Key metrics row
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Test Accuracy", f"{_metrics['test_accuracy']*100:.1f}%")
+        with col2:
+            st.metric("Macro F1", f"{_metrics['test_macro_f1']*100:.1f}%")
+        with col3:
+            st.metric("ROC-AUC", f"{_metrics['test_roc_auc']*100:.1f}%")
+
+        st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
+
+        col4, col5 = st.columns(2)
+        with col4:
+            st.metric("Validation Macro F1", f"{_metrics['validation_macro_f1']*100:.1f}%")
+        with col5:
+            st.metric("Decision Threshold", f"{_metrics['threshold']:.4f}")
+
+        # Model info
+        st.markdown("---")
+        st.markdown("#### Candidate Architecture")
+        st.write(f"**Model:** {_metrics['candidate']}")
+        st.write(f"**Training Epoch (best):** {_metrics['training']['best_epoch']}")
+        st.write(f"**Random Seed:** {_metrics['training']['seed']}")
+
+        # Dataset splits
+        st.markdown("#### Dataset Splits")
+        _rows = _metrics["rows"]
+        st.write(
+            f"Train: {_rows['train']:,} | "
+            f"Val: {_rows['val']:,} | "
+            f"Test: {_rows['test']:,}"
+        )
+
+        # Confusion matrix
+        st.markdown("#### Test Confusion Matrix")
+        cm = _metrics["test_confusion_matrix"]
+        st.markdown(
+            f"<table style='border-collapse:collapse; font-size:1rem;'>"
+            f"<tr><th></th><th style='padding:8px 16px;'>Pred MATCHED</th><th style='padding:8px 16px;'>Pred MISMATCHED</th></tr>"
+            f"<tr><td style='padding:8px 16px; font-weight:700;'>True MATCHED</td>"
+            f"<td style='padding:8px 16px; text-align:center; background:#D1FAE5;'>{cm[0][0]:,}</td>"
+            f"<td style='padding:8px 16px; text-align:center; background:#FEE2E2;'>{cm[0][1]:,}</td></tr>"
+            f"<tr><td style='padding:8px 16px; font-weight:700;'>True MISMATCHED</td>"
+            f"<td style='padding:8px 16px; text-align:center; background:#FEE2E2;'>{cm[1][0]:,}</td>"
+            f"<td style='padding:8px 16px; text-align:center; background:#D1FAE5;'>{cm[1][1]:,}</td></tr>"
+            f"</table>",
+            unsafe_allow_html=True,
+        )
+
+        # Derived metrics
+        tp, fp, fn, tn = cm[1][1], cm[0][1], cm[1][0], cm[0][0]
+        precision = tp / (tp + fp) if (tp + fp) else 0
+        recall = tp / (tp + fn) if (tp + fn) else 0
+        specificity = tn / (tn + fp) if (tn + fp) else 0
+        st.markdown("#### Per-Class Breakdown (MISMATCHED class)")
+        col6, col7, col8 = st.columns(3)
+        with col6:
+            st.metric("Precision", f"{precision*100:.1f}%")
+        with col7:
+            st.metric("Recall", f"{recall*100:.1f}%")
+        with col8:
+            st.metric("Specificity", f"{specificity*100:.1f}%")
+
+    else:
+        st.warning("metrics.json not found — run the training notebook first.")
+
+    # Dataset audit
+    if _audit_path.is_file():
+        st.markdown("---")
+        st.markdown("#### Dataset Audit")
+        _audit = json.loads(_audit_path.read_text(encoding="utf-8"))
+        verdict = _audit.get("verdict", "unknown")
+        st.write(f"Verdict: **{verdict.upper()}** | Checks passed: {sum(1 for c in _audit['checks'] if c['status']=='pass')}/{len(_audit['checks'])}")
+
+    # RAG vs Non-RAG evaluation
+    if _rag_eval_path.is_file():
+        st.markdown("---")
+        st.markdown("#### RAG vs Non-RAG Evaluation")
+        _rag_eval = json.loads(_rag_eval_path.read_text(encoding="utf-8"))
+        _non_rag = _rag_eval.get("non_rag", {})
+        _rag = _rag_eval.get("rag", {})
+        _paired = _rag_eval.get("paired", {})
+        col_r1, col_r2, col_r3 = st.columns(3)
+        with col_r1:
+            st.metric("Non-RAG Accuracy", f"{_non_rag.get('accuracy', 0)*100:.1f}%")
+        with col_r2:
+            st.metric("RAG Accuracy", f"{_rag.get('accuracy', 0)*100:.1f}%")
+        with col_r3:
+            st.metric("\u0394 (RAG - Non-RAG)", f"{_paired.get('rag_minus_non_rag_accuracy', 0)*100:.1f}%")
+        st.write(f"Samples evaluated: {_non_rag.get('rows', '—')}")
+        st.write(f"Same prediction rate: {_paired.get('same_prediction_rate', 0)*100:.1f}%")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# PAGE 6: PRIVACY & DATA HANDLING
 # ══════════════════════════════════════════════════════════════════════════
 elif page == C.H_PRIVACY:
     st.markdown(

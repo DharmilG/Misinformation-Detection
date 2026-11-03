@@ -8,16 +8,21 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import io
+import os
 import uuid
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+from PIL import Image
 
 from src.utils.config import (
+    CHECKPOINT_PATH,
     CLASSIFIER_THRESHOLD,
     ENCODER_REVISION,
     FEATURE_CONTRACT_VERSION,
@@ -26,7 +31,6 @@ from src.utils.config import (
 
 try:
     import open_clip
-    from PIL import Image
     _OPEN_CLIP_AVAILABLE = True
 except ImportError:
     _OPEN_CLIP_AVAILABLE = False
@@ -93,6 +97,72 @@ def run_classifier(
             status="UNAVAILABLE",
             reason="The CLIP classifier dependencies or model weights are unavailable.",
             remedy="Install the requirements and ensure model weights are accessible.",
+            **common,
+        )
+
+
+@lru_cache(maxsize=1)
+def _load_trained_components(checkpoint_path: str):
+    """Load the released classifier and frozen encoder once per process."""
+    from src.clip_model.checkpoint import load_checkpoint
+    from src.clip_model.clip_features import CLIPFeatureExtractor
+
+    return (
+        load_checkpoint(checkpoint_path, verify_integrity=True),
+        CLIPFeatureExtractor(device="cpu"),
+    )
+
+
+def run_trained_classifier(
+    image_bytes: bytes,
+    caption_normalized: str,
+    checkpoint_path: str | Path | None = None,
+) -> ClassifierResult:
+    """Run the trained D-C head against frozen CLIP features."""
+    run_id = str(uuid.uuid4())
+    path = Path(
+        checkpoint_path
+        or os.environ.get("MISINFO_CHECKPOINT_PATH", str(CHECKPOINT_PATH))
+    )
+    common = {
+        "run_id": run_id,
+        "model_version": "clip-vit-base-patch32-D-C",
+        "encoder_revision": "openai/clip-vit-base-patch32@e6a30b603a447e25185c3e6022e0e4b85c2763f0",
+        "feature_contract_version": FEATURE_CONTRACT_VERSION,
+    }
+
+    if not path.is_dir():
+        return ClassifierResult(
+            status="UNAVAILABLE",
+            reason=f"Trained classifier checkpoint was not found at {path}.",
+            remedy="Set MISINFO_CHECKPOINT_PATH to the checkpoint directory.",
+            **common,
+        )
+
+    try:
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        classifier, encoder = _load_trained_components(str(path.resolve()))
+        encoded = encoder.encode_pair(image, caption_normalized, device="cpu")
+        prediction = classifier.predict(
+            image=encoded["image_features"],
+            text=encoded["text_features"],
+        )
+        label = prediction["predicted_class"]
+        return ClassifierResult(
+            status="OK",
+            label=label,
+            score=round(float(prediction["score"]), 4),
+            calibrated_probability=round(float(prediction["calibrated_probability"]), 4),
+            calibration_status="APPLIED" if classifier.calibration else "ABSENT",
+            score_definition="D-C classifier probability for MISMATCHED from frozen CLIP interaction features.",
+            **common,
+        )
+    except (FileNotFoundError, ImportError, RuntimeError, ValueError, OSError) as exc:
+        return ClassifierResult(
+            status="FAILED",
+            reason="The trained classifier could not process this input.",
+            error_detail=str(exc),
+            remedy="Verify the checkpoint files and CLIP model cache.",
             **common,
         )
 

@@ -20,6 +20,7 @@ H_REPORT            = "Analysis Report"
 H_EVIDENCE          = "Evidence Sources"
 H_METHODOLOGY       = "Methodology & Limitations"
 H_PRIVACY           = "Privacy & Data Handling"
+H_PERFORMANCE       = "Model Performance"
 
 H_CLASSIFIER        = "Image–Caption Consistency"
 H_ASSESSMENT        = "Claim Assessment"

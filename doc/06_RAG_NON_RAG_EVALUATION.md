@@ -2011,6 +2011,16 @@ the model candidates per §24, record the results in §24.5, and fill in the
 measured evaluation figures in §39. Until those artifacts exist, no evaluation
 score is claimed.
 
+The repository now includes `scripts/evaluate_rag_non_rag.py` as the reporting
+entry point for the confirmed baseline protocol: non-RAG is the classifier-only
+arm, while RAG uses the same claims with retrieved evidence. It requires a
+real JSONL manifest containing `id`, `gold_outcome`, `non_rag_outcome`, and
+`rag_outcome` for every paired row; optional `rag_generation` records provide
+citation-validity and human semantic-support metrics. The script refuses
+missing or fabricated labels and writes separate arm metrics plus paired
+differences. It does not create the manifest or claim scores until the
+evidence judgments and RAG outputs exist.
+
 ## 51. Immediate next step
 
 Implement `src/retrieval/` against this contract, beginning with `schema.py`, `corpus.py`, and `chunking.py`, then the retrievers, fusion, and filters. Fill in the measured values during implementation — `tau_dense`, `alpha_relative`, the average document length, the observed `dense_max_tokens`, the truncation count, and the dev and test metrics — and update §13.3, §19.1, §19.2, and §38 of this document with them.
