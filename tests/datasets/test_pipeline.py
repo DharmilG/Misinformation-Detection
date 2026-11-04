@@ -96,13 +96,12 @@ def test_cache_key_carries_manifest_hash(dataset_root, tmp_path):
     assert meta.get("source_manifest_sha256"), "the cache metadata does not record the manifest hash"
 
 
-@known_gap(
+@case(
     "pipeline.no_pickle_in_cache",
     "F7",
     "data",
     "doc/01 §11.2",
     "The cache loads with allow_pickle=False.",
-    "there is no cache",
 )
 def test_no_pickle_in_cache(dataset_root, tmp_path):
     import numpy as np
@@ -110,5 +109,7 @@ def test_no_pickle_in_cache(dataset_root, tmp_path):
     from extraction import extract_split
 
     extract_split(dataset_root, "val", output=tmp_path)
-    with np.load(tmp_path / "image_embeddings.npy", allow_pickle=False) as array:
-        assert array.shape == (7024, 512)
+    # A .npy is loaded directly (not as a context manager, which .npz needs).
+    # The contract is that it loads with allow_pickle=False and is row-aligned.
+    array = np.load(tmp_path / "image_embeddings.npy", allow_pickle=False)
+    assert array.shape == (7024, 512)

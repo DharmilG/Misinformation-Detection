@@ -14,25 +14,23 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 E2E_MANIFEST = ROOT / "data" / "eval" / "e2e_cases.jsonl"
 
 
-@known_gap(
+@case(
     "e2e_manifest.file_exists",
     "F10",
     "fast",
     "doc/07 §8.1",
     "The end-to-end case manifest exists at data/eval/e2e_cases.jsonl.",
-    "data/eval/e2e_cases.jsonl has not yet been generated",
 )
 def test_e2e_manifest_file_exists():
     assert E2E_MANIFEST.is_file(), f"Expected manifest file at {E2E_MANIFEST}"
 
 
-@known_gap(
+@case(
     "e2e_manifest.record_schema",
     "F10",
     "fast",
     "doc/07 §8.2",
     "Each record contains case_id, purpose, input, expected_path, expected_status, expected_render, gold_outcome.",
-    "e2e_cases manifest records are not yet present",
 )
 def test_e2e_manifest_record_schema():
     assert E2E_MANIFEST.is_file()
@@ -52,13 +50,12 @@ def test_e2e_manifest_record_schema():
             assert not missing, f"Line {idx} missing fields: {missing}"
 
 
-@known_gap(
+@case(
     "e2e_manifest.purpose_categories",
     "F10",
     "fast",
     "doc/07 §8.2",
     "Case purpose must be functionality, retrieval_coverage, semantic_correctness, or failure_handling.",
-    "e2e_cases manifest is not yet present",
 )
 def test_e2e_manifest_purpose_categories():
     assert E2E_MANIFEST.is_file()
@@ -74,13 +71,12 @@ def test_e2e_manifest_purpose_categories():
             assert record["purpose"] in valid_purposes
 
 
-@known_gap(
+@case(
     "e2e_manifest.degradation_coverage",
     "F10",
     "fast",
     "doc/07 §8.3",
     "Every row of the degradation matrix in Document 07 §7.1 has at least one case in the manifest.",
-    "degradation test cases are not yet populated in e2e manifest",
 )
 def test_e2e_manifest_degradation_coverage():
     assert E2E_MANIFEST.is_file()
@@ -107,13 +103,12 @@ def test_e2e_manifest_degradation_coverage():
     assert not missing, f"Missing degradation coverage for: {missing}"
 
 
-@known_gap(
+@case(
     "e2e_manifest.gold_outcome_optionality",
     "F10",
     "fast",
     "doc/07 §8.3",
     "Not every case has a gold label; corrupt inputs test rejection and rendering, with gold_outcome as null.",
-    "e2e manifest is not yet populated",
 )
 def test_e2e_manifest_gold_outcome_optionality():
     assert E2E_MANIFEST.is_file()

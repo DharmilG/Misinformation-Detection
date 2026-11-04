@@ -22,11 +22,11 @@ H_METHODOLOGY       = "Methodology & Limitations"
 H_PRIVACY           = "Privacy & Data Handling"
 H_PERFORMANCE       = "Model Performance"
 
-H_CLASSIFIER        = "Image–Caption Consistency"
+H_CLASSIFIER        = "Image-Caption Consistency"
 H_ASSESSMENT        = "Claim Assessment"
 H_COMPARISON        = "Signal Comparison"
 H_INPUT             = "Input"
-H_RETRIEVED         = "Retrieved Evidence"
+H_RETRIEVED         = "Retrieved Passages"
 H_ACCEPTED_CITS     = "Accepted Citations"
 H_REJECTED_CITS     = "Rejected Citations"
 H_SYSTEM_LIMS       = "System Limitations"
@@ -143,7 +143,7 @@ EXPORT_DISCLOSURE = (
     "all retrieved passages, accepted and rejected citations, "
     "the comparison state, system limitations, and analysis provenance. "
     "It does not include the uploaded image file itself, "
-    "and it does not include dataset-split or leakage diagnostics."
+    "and it does not include dataset-split or diagnostic reports."
 )
 
 # ── Privacy copy (§17) ────────────────────────────────────────────────────

@@ -42,13 +42,12 @@ def test_detects_change():
     assert unchanged["matches"] is True, "an identical baseline was rejected"
 
 
-@known_gap(
+@case(
     "golden.baseline_present",
     "F9",
     "fast",
     "doc/01 §15.5",
     "A recorded baseline of image and caption embeddings exists, so the regression has something to compare against.",
-    "the baseline has not been recorded yet; it requires one run of the encoder on the reference machine",
 )
 def test_baseline_present():
     baseline = golden.load()
@@ -56,13 +55,12 @@ def test_baseline_present():
     assert len(baseline["pairs"]) == len(golden.PAIRS)
 
 
-@known_gap(
+@case(
     "golden.reproduces_within_tolerance",
     "F9",
     "slow",
     "doc/01 §14.3, §15.5",
     "The current build reproduces the recorded baseline within the tolerance.",
-    "the baseline has not been recorded yet",
     requires=("torch", "transformers"),
 )
 def test_reproduces_within_tolerance(extractor, tmp_path):

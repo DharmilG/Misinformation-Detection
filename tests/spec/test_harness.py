@@ -18,13 +18,12 @@ def _harness_module():
     return importlib.import_module("src.evaluation.harness")
 
 
-@known_gap(
+@case(
     "harness.eval_split_isolation",
     "F10",
     "fast",
     "doc/07 §3",
     "The evaluation script refuses to run if it reads a split it is not named for.",
-    "evaluation harness split isolation validator is not yet implemented",
 )
 def test_eval_split_isolation():
     mod = _harness_module()
@@ -34,13 +33,12 @@ def test_eval_split_isolation():
         mod.assert_split_match(script_name="eval_retrieval_dev.py", split_name="test")
 
 
-@known_gap(
+@case(
     "harness.eval_fingerprint_precondition",
     "F10",
     "fast",
     "doc/07 §3",
     "The evaluation script aborts if the configuration fingerprint differs from the recorded one.",
-    "evaluation harness fingerprint precondition checker is not yet implemented",
 )
 def test_eval_fingerprint_precondition():
     mod = _harness_module()
@@ -52,13 +50,12 @@ def test_eval_fingerprint_precondition():
         )
 
 
-@known_gap(
+@case(
     "harness.eval_provenance_present",
     "F10",
     "fast",
     "doc/07 §3",
     "Evaluation outputs require full provenance: model version, corpus manifest hash, prompt version, and retrieval config.",
-    "evaluation provenance validator is not yet implemented",
 )
 def test_eval_provenance_present():
     mod = _harness_module()
@@ -75,13 +72,12 @@ def test_eval_provenance_present():
         mod.validate_evaluation_provenance(incomplete)
 
 
-@known_gap(
+@case(
     "harness.eval_output_context_bound",
     "F10",
     "fast",
     "doc/07 §3",
     "Output is written with configuration and provenance so numbers cannot be produced without context.",
-    "evaluation output packaging is not yet implemented",
 )
 def test_eval_output_context_bound():
     mod = _harness_module()
@@ -96,13 +92,12 @@ def test_eval_output_context_bound():
     assert "provenance" in record
 
 
-@known_gap(
+@case(
     "harness.eval_fixture_named_match",
     "F10",
     "fast",
     "doc/07 §3",
     "Script aborts on attempt to evaluate on an un-named fixture or test set.",
-    "evaluation fixture binding enforcement is not yet implemented",
 )
 def test_eval_fixture_named_match():
     mod = _harness_module()
