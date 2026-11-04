@@ -1615,6 +1615,15 @@ pytest -m "not slow and not eval and not benchmark and not e2e"
 
 The training script is **orchestration only**. Model definitions, training logic, metrics, and calibration live in `src/clip_model/` so each is independently testable. A test asserts that `scripts/train_classifier.py` contains no model definitions, no metric formulas, and no calibration math.
 
+The genuine data path is:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\extract_clip_features.py
+.\.venv\Scripts\python.exe scripts\train_classifier.py
+```
+
+The extractor reads the audited split CSVs and writes aligned frozen-CLIP embeddings, labels, sample IDs, and provenance metadata under `data/features/` by default, or under the local `dataset/data/features/` layout when that dataset tree is present. Training refuses to proceed when any split cache is absent or misaligned, selects its operating threshold from validation predictions, and evaluates the held-out test split only after training. The dashboard resolves the trained checkpoint from `dataset/models/checkpoint/` when present; `MISINFO_CHECKPOINT_PATH` can override that location without copying large artifacts into Git.
+
 ---
 
 ## 35. Testing strategy

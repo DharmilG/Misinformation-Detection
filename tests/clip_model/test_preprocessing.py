@@ -69,35 +69,58 @@ def test_exif_applied(extractor, tmp_path):
     )
 
 
-@known_gap(
+@case(
     "preprocess.alpha_white",
     "F3",
     "slow",
     "doc/04 §7.3",
     "A transparent pixel is composited onto white, not discarded.",
-    "the alpha channel is discarded, so a transparent pixel keeps its stored colour",
     requires=("torch", "transformers"),
 )
-def test_alpha_white(extractor, tmp_path):
+def test_alpha_white(extractor, tmp_path, monkeypatch):
     from PIL import Image
 
     path = images.write(tmp_path / "alpha.png", images.rgba_with_transparent_pixel())
+
+    # The stored colour is black under a zero alpha, so a naive convert that
+    # discards alpha yields black.  What the contract cares about is the image
+    # the extractor hands to the processor: it must be composited onto white.
     with Image.open(path) as opened:
-        converted = opened.convert("RGB")
-    assert converted.getpixel((0, 0)) == (255, 255, 255), (
-        "a transparent pixel became %r, not white" % (converted.getpixel((0, 0)),)
+        naive = opened.convert("RGB")
+    assert naive.getpixel((0, 0)) != (255, 255, 255), (
+        "fixture assumes discarding alpha does not yield white"
     )
+
+    seen = {}
+    inner = extractor.processor
+
+    class Spy:
+        def __call__(self, *args, **kwargs):
+            given = kwargs.get("images")
+            if given is None and args:
+                given = args[0]
+            if isinstance(given, (list, tuple)):
+                given = given[0]
+            if given is not None:
+                seen["image"] = given
+            return inner(*args, **kwargs)
+
+    monkeypatch.setattr(extractor, "processor", Spy())
     out = extractor.extract_features(str(path), captions.SHORT)
+
+    assert seen["image"].getpixel((0, 0)) == (255, 255, 255), (
+        "the transparent pixel was not composited onto white: %r"
+        % (seen["image"].getpixel((0, 0)),)
+    )
     assert torch.isfinite(out["image_features"]).all()
 
 
-@known_gap(
+@case(
     "preprocess.downscale_to_2048",
     "F3",
     "slow",
     "doc/04 §7.4",
     "The image handed to the processor is at most 2048 px on its longest side.",
-    "the original image is handed to the processor, with no downscale step",
     requires=("torch", "transformers"),
 )
 def test_downscale_to_2048(extractor, tmp_path, monkeypatch):

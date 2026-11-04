@@ -24,7 +24,31 @@ renderer and the tests — it is never constructed inline in app.py.
 """
 from __future__ import annotations
 
+from enum import Enum
+
 from src.reporting.model import ClassifierSection, AssessmentSection, ComparisonSection
+
+
+# ── Direction and State Enums (§8.1, §8.2) ──────────────────────────────
+class ClassifierDirection(Enum):
+    MISMATCH_INDICATED = "MISMATCH_INDICATED"
+    NO_MISMATCH_INDICATED = "NO_MISMATCH_INDICATED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class AssessmentDirection(Enum):
+    CONTRADICTS_CLAIM = "CONTRADICTS_CLAIM"
+    SUPPORTS_CLAIM = "SUPPORTS_CLAIM"
+    UNRESOLVED = "UNRESOLVED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class ComparisonState(Enum):
+    CONSISTENT_PATTERN = "CONSISTENT_PATTERN"
+    DIFFERENT_PATTERN = "DIFFERENT_PATTERN"
+    ASSESSMENT_UNRESOLVED = "ASSESSMENT_UNRESOLVED"
+    ASSESSMENT_UNAVAILABLE = "ASSESSMENT_UNAVAILABLE"
+    CLASSIFIER_UNAVAILABLE = "CLASSIFIER_UNAVAILABLE"
 
 # §8.4 — always rendered alongside any comparison state
 PERMANENT_NOTE = "Two signals pointing the same way does not make either one correct."
@@ -125,3 +149,33 @@ def compute_comparison(
 
     state, sentence = _SENTENCES[(cd, ad)]
     return ComparisonSection(state=state, sentence=sentence)
+
+
+# ── Public conformance API ────────────────────────────────────────────────
+
+# Build a lookup from state -> sentence (use first occurrence per state)
+_STATE_SENTENCES: dict[str, str] = {}
+for _k, (_s, _sent) in _SENTENCES.items():
+    _STATE_SENTENCES.setdefault(_s, _sent)
+_STATE_SENTENCES["ASSESSMENT_UNRESOLVED"] = _SENTENCE_UNRESOLVED[1]
+_STATE_SENTENCES["ASSESSMENT_UNAVAILABLE"] = _SENTENCE_ASM_UNAVAILABLE[1]
+_STATE_SENTENCES["CLASSIFIER_UNAVAILABLE"] = _SENTENCE_CLF_UNAVAILABLE[1]
+
+
+def map_comparison_state(clf_dir: str, asm_dir: str) -> str:
+    """Return the comparison state string for a (classifier, assessment) direction pair."""
+    if clf_dir == "UNAVAILABLE":
+        return "CLASSIFIER_UNAVAILABLE"
+    if asm_dir == "UNAVAILABLE":
+        return "ASSESSMENT_UNAVAILABLE"
+    if asm_dir == "UNRESOLVED":
+        return "ASSESSMENT_UNRESOLVED"
+    key = (clf_dir, asm_dir)
+    if key in _SENTENCES:
+        return _SENTENCES[key][0]
+    return "ASSESSMENT_UNRESOLVED"
+
+
+def get_comparison_sentence(state: str) -> str:
+    """Return the approved descriptive sentence for a comparison state."""
+    return _STATE_SENTENCES.get(state, "")

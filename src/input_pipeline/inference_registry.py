@@ -10,6 +10,8 @@ from pathlib import Path
 import threading
 from typing import Any
 
+from src.utils.config import CHECKPOINT_PATH
+
 _registry_lock = threading.Lock()
 _global_registry: ModelRegistry | None = None
 
@@ -46,7 +48,7 @@ class ModelRegistry:
                 self.classifier_load_count += 1
                 try:
                     from checkpoint import load_checkpoint
-                    path = checkpoint_path or Path("models/test_release")
+                    path = checkpoint_path or CHECKPOINT_PATH
                     self._classifier = load_checkpoint(path)
                 except Exception:
                     class _FallbackClassifier:

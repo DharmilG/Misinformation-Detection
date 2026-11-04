@@ -16,13 +16,12 @@ def _reporting_module():
     return importlib.import_module("src.reporting.report_model")
 
 
-@known_gap(
+@case(
     "reporting.model_structure",
     "F2",
     "fast",
     "doc/05 §2.1",
     "ReportModel structure defines request_id, analysis_fingerprint, created_at, input, classifier, evidence, assessment, comparison, limitations, provenance.",
-    "ReportModel is not yet implemented",
 )
 def test_reporting_model_structure():
     mod = _reporting_module()
@@ -43,13 +42,12 @@ def test_reporting_model_structure():
     assert required.issubset(fields.keys())
 
 
-@known_gap(
+@case(
     "reporting.per_section_status_contract",
     "F2",
     "fast",
     "doc/05 §2.2",
     "Per-section status strictly reuses OK / UNAVAILABLE / SKIPPED / FAILED without new status vocabulary; input is always OK.",
-    "reporting status contract is not yet implemented",
 )
 def test_reporting_per_section_status_contract():
     mod = _reporting_module()
@@ -61,13 +59,12 @@ def test_reporting_per_section_status_contract():
         assert names == allowed_statuses
 
 
-@known_gap(
+@case(
     "reporting.required_payload_per_status",
     "F2",
     "fast",
     "doc/05 §2.3",
     "Non-OK status produces None for result values; OK status requires validated payload.",
-    "section payload validation is not yet implemented",
 )
 def test_reporting_required_payload_per_status():
     mod = _reporting_module()
@@ -79,13 +76,12 @@ def test_reporting_required_payload_per_status():
     assert degraded_sec.probability is None
 
 
-@known_gap(
+@case(
     "reporting.no_placeholders_in_payload",
     "F2",
     "fast",
     "doc/05 §2.4",
     "Rendered report never contains placeholder strings like empty string, N/A, unknown, or dash.",
-    "report renderer placeholder checking is not yet implemented",
 )
 def test_reporting_no_placeholders_in_payload():
     mod = _reporting_module()
@@ -97,13 +93,12 @@ def test_reporting_no_placeholders_in_payload():
         assert forbidden not in rendered
 
 
-@known_gap(
+@case(
     "reporting.error_fallback_matrix",
     "F2",
     "fast",
     "doc/05 §10",
     "Degraded sections remain visible with failure reasons while other unaffected sections continue to render.",
-    "error and fallback matrix rendering is not yet implemented",
 )
 def test_reporting_error_fallback_matrix():
     mod = _reporting_module()
@@ -119,13 +114,12 @@ def test_reporting_error_fallback_matrix():
     assert "CLAIM ASSESSMENT" in rendered.upper()
 
 
-@known_gap(
+@case(
     "reporting.input_rejection_view",
     "F2",
     "fast",
     "doc/05 §11",
     "Invalid input renders rejection view with verbatim validation error; no report model or request ID is constructed.",
-    "input rejection view is not yet implemented",
 )
 def test_reporting_input_rejection_view():
     mod = _reporting_module()
@@ -136,13 +130,12 @@ def test_reporting_input_rejection_view():
     assert not isinstance(res, getattr(mod, "ReportModel", object))
 
 
-@known_gap(
+@case(
     "reporting.analysis_fingerprint_components",
     "F2",
     "fast",
     "doc/05 §12.2",
     "Analysis fingerprint is SHA-256 over image, caption, model, run ID, encoder, corpus manifest, prompt, retrieval config, and chunking hashes.",
-    "analysis fingerprinting is not yet implemented",
 )
 def test_reporting_analysis_fingerprint_components():
     mod = _reporting_module()
@@ -163,13 +156,12 @@ def test_reporting_analysis_fingerprint_components():
     assert isinstance(fp, str) and len(fp) == 64
 
 
-@known_gap(
+@case(
     "reporting.rerun_and_cache_invalidation",
     "F2",
     "fast",
     "doc/05 §12.3",
     "Display interaction reuses cached report without rerun; submission or config change computes new fingerprint and invalidates cache.",
-    "session cache invalidation policy is not yet implemented",
 )
 def test_reporting_rerun_and_cache_invalidation():
     mod = _reporting_module()
@@ -182,13 +174,12 @@ def test_reporting_rerun_and_cache_invalidation():
     assert cache.lookup("different_fingerprint_hash") is None
 
 
-@known_gap(
+@case(
     "reporting.export_markdown_enumerated_fields",
     "F2",
     "fast",
     "doc/05 §15.1",
     "Markdown export contains exactly the enumerated submission, consistency, assessment, evidence, comparison, limitation, and provenance fields.",
-    "markdown export serializer is not yet implemented",
 )
 def test_reporting_export_markdown_enumerated_fields():
     mod = _reporting_module()
@@ -203,13 +194,12 @@ def test_reporting_export_markdown_enumerated_fields():
     assert "Provenance" in md
 
 
-@known_gap(
+@case(
     "reporting.export_retrieved_vs_cited_distinction",
     "F2",
     "fast",
     "doc/05 §15.2",
     "Export preserves separation between all retrieved passages and accepted citations, including rejected citations with reasons.",
-    "retrieved vs cited distinction in export is not yet implemented",
 )
 def test_reporting_export_retrieved_vs_cited_distinction():
     mod = _reporting_module()
@@ -221,13 +211,12 @@ def test_reporting_export_retrieved_vs_cited_distinction():
     assert "Rejected Citations" in md
 
 
-@known_gap(
+@case(
     "reporting.export_excludes_dataset_diagnostics",
     "F2",
     "fast",
     "doc/05 §15.3",
     "Per-analysis export excludes dataset-split and leakage diagnostics which belong exclusively to Document 07 evaluation reports.",
-    "export diagnostic boundary enforcement is not yet implemented",
 )
 def test_reporting_export_excludes_dataset_diagnostics():
     mod = _reporting_module()
@@ -239,13 +228,12 @@ def test_reporting_export_excludes_dataset_diagnostics():
     assert "split_diagnostics" not in md
 
 
-@known_gap(
+@case(
     "reporting.untrusted_text_escaped",
     "F2",
     "fast",
     "doc/05 §16.1",
     "All untrusted strings (caption, passage excerpt, quotes, titles, URLs) are escaped against markdown and control sequence injection.",
-    "untrusted text escaping is not yet implemented",
 )
 def test_reporting_untrusted_text_escaped():
     mod = _reporting_module()
@@ -256,13 +244,12 @@ def test_reporting_untrusted_text_escaped():
     assert "<script>" not in escaped
 
 
-@known_gap(
+@case(
     "reporting.outcome_word_and_icon",
     "F2",
     "fast",
     "doc/05 §16",
     "Assessment outcome is rendered as both word and symbol (Supported ✓, Contradicted ✗, Inconclusive ?, Conflicting ⚠), never colour alone.",
-    "accessible outcome encoding is not yet implemented",
 )
 def test_reporting_outcome_word_and_icon():
     mod = _reporting_module()
@@ -274,13 +261,12 @@ def test_reporting_outcome_word_and_icon():
     assert "⚠" in mod.format_outcome_badge("CONFLICTING")
 
 
-@known_gap(
+@case(
     "reporting.pure_text_rendering",
     "F2",
     "fast",
     "doc/05 §18.1",
     "Pure render_report_text function renders complete report without Streamlit dependencies or side effects.",
-    "pure text rendering layer is not yet implemented",
 )
 def test_reporting_pure_text_rendering():
     mod = _reporting_module()

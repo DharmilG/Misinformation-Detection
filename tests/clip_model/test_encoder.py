@@ -192,13 +192,13 @@ def test_norm_is_idempotent(extractor, tmp_path):
         assert torch.allclose(once, twice, atol=1e-6), "%s is not idempotent" % key
 
 
-@known_gap(
+@case(
     "clip.extract.token_metadata",
     "F1",
     "slow",
     "doc/01 §7.2",
     "The result reports the CLIP token count, the original token count, and whether the caption was truncated.",
-    "the result carries only the two feature tensors",
+    requires=("torch", "transformers"),
 )
 def test_token_metadata(extractor, tmp_path):
     path = images.write(tmp_path / "solid.png", images.solid_rgb())
@@ -207,13 +207,13 @@ def test_token_metadata(extractor, tmp_path):
         assert key in out, "the result does not report %s" % key
 
 
-@known_gap(
+@case(
     "clip.extract.long_caption_truncates",
     "F1",
     "slow",
     "doc/01 §5.2, §7.2",
     "A caption longer than the 77-token window is truncated rather than raising, and the truncation is reported.",
-    "the processor is called without truncation, so a long caption overflows the position embedding",
+    requires=("torch", "transformers"),
 )
 def test_long_caption_truncates(extractor, tmp_path):
     path = images.write(tmp_path / "solid.png", images.solid_rgb())

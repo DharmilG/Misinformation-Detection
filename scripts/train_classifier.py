@@ -1,159 +1,130 @@
-"""Reproducible experiment entry point and classifier training orchestration (Document 03 §7, §9, §40).
-
-Orchestrates data loading, two-stage model selection, threshold selection,
-temperature calibration fitting, and exporting the complete 6 checkpoint files.
-"""
-
+"""Train and evaluate the classifier from genuine frozen-CLIP features."""
 from __future__ import annotations
 
 import argparse
-import datetime
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
 
-# Ensure src/clip_model is in sys.path
 ROOT = Path(__file__).resolve().parent.parent
 CLIP_DIR = ROOT / "src" / "clip_model"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(CLIP_DIR) not in sys.path:
     sys.path.insert(0, str(CLIP_DIR))
 
-from classifier import (
-    create_model,
-)
-from classifier_packaging import generate_copy_json
+from classifier import build_features, create_model, select_threshold
+from classifier_dataset import FeaturePairDataset
+from metrics import compute_accuracy, compute_confusion_matrix, compute_macro_f1, compute_roc_auc
+from training import compute_class_weights, train_classifier
 
 
-def export_checkpoint(
-    output_dir: Path,
-    model: torch.nn.Module,
-    candidate: str,
-    threshold: float,
-    temperature: float,
-    metrics: dict[str, Any],
-    dataset_name: str = "ooc",
-    split_config: str = "official-v1",
-    seed: int = 42,
-    model_version: str = "1.0.0",
-) -> None:
-    """Write the complete 6 checkpoint files specified in Document 03 §17.2."""
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-
-    # 1. weights.pt
-    torch.save(model.state_dict(), out / "weights.pt")
-
-    # 2. config.json
-    now_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%MZ")
-    run_id = f"r{now_str}-s{seed}-c{candidate.lower()}"
-    name = f"mismis-clip-vitb32-{dataset_name}-{split_config}-{candidate.lower()}-v{model_version}-{run_id}"
-
-    config_data = {
-        "name": name,
-        "model_version": model_version,
-        "run_id": run_id,
-        "candidate": candidate,
-        "seed": seed,
-        "hyperparameters": {
-            "hidden_dim": 256,
-            "dropout": 0.1,
-            "learning_rate": 1e-3,
-            "weight_decay": 1e-2,
-            "batch_size": 512,
-        },
-        "inference": {
-            "feature_family": candidate,
-            "operating_threshold": float(threshold),
-            "calibration_expected": True,
-        },
-    }
-    with open(out / "config.json", "w", encoding="utf-8") as f:
-        json.dump(config_data, f, indent=2)
-
-    # 3. calibration.json
-    cal_data = {
-        "method": "temperature_scaling",
-        "temperature": float(temperature),
-        "displayed_quantity": "P(MISMATCHED)",
-        "fitted_on": "validation",
-    }
-    with open(out / "calibration.json", "w", encoding="utf-8") as f:
-        json.dump(cal_data, f, indent=2)
-
-    # 4. metrics.json
-    with open(out / "metrics.json", "w", encoding="utf-8") as f:
-        json.dump(metrics, f, indent=2)
-
-    # 5. provenance.json
-    prov_data = {
-        "encoder": {
-            "model_id": "openai/clip-vit-base-patch32",
-            "revision": "e6a30b603a447e25185c3e6022e0e4b85c2763f0",
-        },
-        "training_data": {
-            "dataset": dataset_name,
-            "split_config": split_config,
-        },
-    }
-    with open(out / "provenance.json", "w", encoding="utf-8") as f:
-        json.dump(prov_data, f, indent=2)
-
-    # 6. copy.json
-    copy_data = generate_copy_json(version="1.0.0")
-    with open(out / "copy.json", "w", encoding="utf-8") as f:
-        json.dump(copy_data, f, indent=2)
-
-    # MODEL_CARD.md
-    model_card = f"""# Model Card: {name}
-
-## Intended Use
-Misinformation detection via multimodal image-caption alignment.
-
-## Model Details
-- Architecture: Candidate Family {candidate}
-- Operating threshold: {threshold:.4f}
-- Temperature: {temperature:.4f}
-- Seed: {seed} (canonical)
-"""
-    (out / "MODEL_CARD.md").write_text(model_card, encoding="utf-8")
-
-    # requirements-lock.txt
-    lockfile_content = f"torch=={torch.__version__}\nnumpy=={np.__version__}\n"
-    (out / "requirements-lock.txt").write_text(lockfile_content, encoding="utf-8")
-
-    print(f"Exported checkpoint to {out}")
-
-
-def main(argv=None):
-    parser = argparse.ArgumentParser(description="Train classifier and export checkpoint.")
-    parser.add_argument("--candidate", default="D-C", help="Candidate family to train")
-    parser.add_argument("--out", default="models/checkpoint", help="Output directory")
-    args = parser.parse_args(argv)
-
-    out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Example synthetic training run for demonstration
-    model = create_model(args.candidate, hidden_dim=256, dropout=0.1)
-    metrics_summary = {
-        "val_macro_f1": 0.825,
-        "val_accuracy": 0.830,
-        "val_roc_auc": 0.890,
-    }
-    export_checkpoint(
-        output_dir=out_dir,
-        model=model,
-        candidate=args.candidate,
-        threshold=0.50,
-        temperature=1.20,
-        metrics=metrics_summary,
+def _load_features(root: Path, split: str) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    directory = root / split
+    required = (
+        directory / "image_embeddings.npy",
+        directory / "text_embeddings.npy",
+        directory / "labels.npy",
+        directory / "sample_ids.json",
     )
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            f"Missing extracted CLIP features for '{split}': {', '.join(missing)}. "
+            "Run scripts/extract_clip_features.py first."
+        )
+    image = np.load(required[0], allow_pickle=False)
+    text = np.load(required[1], allow_pickle=False)
+    labels = np.load(required[2], allow_pickle=False)
+    ids = json.loads(required[3].read_text(encoding="utf-8"))
+    if not (len(image) == len(text) == len(labels) == len(ids)):
+        raise ValueError(f"Feature alignment failure in {directory}")
+    return image, text, labels, ids
+
+
+def _prepare_dataset(root: Path, split: str, family: str) -> FeaturePairDataset:
+    image, text, labels, ids = _load_features(root, split)
+    features = build_features(
+        family,
+        torch.from_numpy(image),
+        torch.from_numpy(text),
+    ).numpy()
+    return FeaturePairDataset(features, labels, ids)
+
+
+def _predict(model: torch.nn.Module, dataset: FeaturePairDataset) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    with torch.no_grad():
+        logits = model(torch.from_numpy(np.array(dataset.features, copy=True))).cpu()
+    probabilities = torch.softmax(logits, dim=-1)[:, 1].numpy()
+    return dataset.labels, probabilities, logits.numpy()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    default_features = ROOT / "dataset" / "data" / "features"
+    if not default_features.parent.is_dir():
+        default_features = ROOT / "data" / "features"
+    default_output = ROOT / "dataset" / "models" / "checkpoint"
+    if not default_output.parent.is_dir():
+        default_output = ROOT / "models" / "checkpoint"
+    parser.add_argument("--features-root", type=Path, default=default_features)
+    parser.add_argument("--output", type=Path, default=default_output)
+    parser.add_argument("--candidate", choices=("A", "B", "C", "D-B", "D-C"), default="D-C")
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    parser.add_argument("--checkpoint", type=Path, default=None,
+                        help="Save an atomic resumable training checkpoint after each epoch.")
+    parser.add_argument("--resume", type=Path, default=None,
+                        help="Resume from a checkpoint created by --checkpoint.")
+    args = parser.parse_args(argv)
+    if args.epochs < 1:
+        parser.error("--epochs must be positive")
+
+    train = _prepare_dataset(args.features_root, "train", args.candidate)
+    val = _prepare_dataset(args.features_root, "val", args.candidate)
+    test = _prepare_dataset(args.features_root, "test", args.candidate)
+    model = create_model(args.candidate)
+    config = {
+        "epoch_cap": args.epochs,
+        "device": args.device,
+        "checkpoint_path": str(args.checkpoint) if args.checkpoint else None,
+        "resume_path": str(args.resume) if args.resume else None,
+    }
+    model, training_summary = train_classifier(
+        model, train, val,
+        class_weights=compute_class_weights(train.class_counts()),
+        config=config,
+    )
+    val_labels, val_scores, _ = _predict(model, val)
+    threshold = select_threshold(val_scores, val_labels)
+    test_labels, test_scores, test_logits = _predict(model, test)
+    test_predictions = (test_scores >= threshold).astype(np.int64)
+    metrics = {
+        "candidate": args.candidate,
+        "threshold": threshold,
+        "validation_macro_f1": compute_macro_f1(y_true=val_labels, y_pred=(val_scores >= threshold).astype(np.int64)),
+        "test_accuracy": compute_accuracy(test_labels, test_predictions),
+        "test_macro_f1": compute_macro_f1(y_true=test_labels, y_pred=test_predictions),
+        "test_roc_auc": compute_roc_auc(test_labels, test_scores),
+        "test_confusion_matrix": compute_confusion_matrix(test_labels, test_predictions).tolist(),
+        "training": training_summary,
+        "rows": {"train": len(train), "val": len(val), "test": len(test)},
+    }
+    args.output.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), args.output / "weights.pt")
+    (args.output / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (args.output / "config.json").write_text(json.dumps({
+        "candidate": args.candidate,
+        "feature_source": str(args.features_root),
+        "threshold_selected_on": "validation",
+        "test_evaluated_once": True,
+    }, indent=2), encoding="utf-8")
+    print(json.dumps(metrics, indent=2))
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

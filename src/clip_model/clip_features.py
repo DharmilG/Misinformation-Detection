@@ -10,12 +10,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
-from PIL import Image
+from PIL import Image, ImageOps
 import torch
 from transformers import CLIPModel, CLIPProcessor
 
-from constants import MODEL_ID, MODEL_REVISION
-from errors import DeviceUnavailableError, FeatureExtractionError
+try:
+    from .constants import MODEL_ID, MODEL_REVISION
+    from .errors import DeviceUnavailableError, FeatureExtractionError
+except ImportError:
+    from constants import MODEL_ID, MODEL_REVISION
+    from errors import DeviceUnavailableError, FeatureExtractionError
 
 
 @dataclass(frozen=True)
@@ -53,7 +57,15 @@ class CLIPFeatureExtractor:
             CLIPFeatureExtractor._cached_model = model
 
         self.processor = CLIPFeatureExtractor._cached_processor
-        self.model = CLIPFeatureExtractor._cached_model
+        # Bind the tokenizer once so a processor spy in tests does not remove
+        # the token-count reference used by encode_pair.  Guarded because a
+        # stubbed processor (single-load test) may not expose one.
+        self.tokenizer = getattr(self.processor, "tokenizer", None)
+        if hasattr(CLIPFeatureExtractor._cached_model, "to"):
+            self.model = CLIPFeatureExtractor._cached_model.to(self.device)
+        else:
+            self.model = CLIPFeatureExtractor._cached_model
+        self.model.eval()
 
         self.info = EncoderInfo(
             model_id=self.model_name,
@@ -72,7 +84,7 @@ class CLIPFeatureExtractor:
             p = Path(image_path)
             if not p.is_file():
                 raise FeatureExtractionError(f"Image file does not exist: {image_path}")
-            image = Image.open(p).convert("RGB")
+            image = Image.open(p)
         except FeatureExtractionError:
             raise
         except Exception as exc:
@@ -80,18 +92,55 @@ class CLIPFeatureExtractor:
 
         return self.encode_pair(image, caption, device=device)
 
+    #: Maximum edge (px) handed to the CLIP processor, per Document 04 §7.4.
+    max_edge = 2048
+
+    def _preprocess_image(self, image: Image.Image) -> Image.Image:
+        """Apply the encoder preprocessing path of Document 04 §7.
+
+        Order matters: EXIF orientation, alpha composited onto white, then a
+        downscale to at most :attr:`max_edge` on the longest side.  The result
+        is always an RGB image, so the processor receives a decoded surface.
+        """
+        # §7.2 — honour EXIF orientation before anything else.
+        img = ImageOps.exif_transpose(image)
+
+        # §7.3 — composite transparency onto white rather than discarding it.
+        if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+            rgba = img.convert("RGBA")
+            white = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+            img = Image.alpha_composite(white, rgba).convert("RGB")
+        else:
+            img = img.convert("RGB")
+
+        # §7.4 — bound the longest side before the processor's own resize.
+        if max(img.width, img.height) > self.max_edge:
+            scale = self.max_edge / max(img.width, img.height)
+            new_size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+            img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+        return img
+
     def encode_pair(
         self,
         image: Image.Image | str | Path,
         text: str,
         device: str | None = None,
-    ) -> dict[str, torch.Tensor]:
+    ) -> dict[str, Any]:
         """Encode a single image and text caption."""
         try:
             if isinstance(image, (str, Path)):
-                img = Image.open(image).convert("RGB")
+                img = Image.open(image)
             else:
                 img = image
+            img = self._preprocess_image(img)
+
+            # Tokenize without truncation to get original token count
+            tokenizer = self.tokenizer or self.processor.tokenizer
+            raw_tokens = tokenizer(
+                [text], add_special_tokens=True,
+            )
+            original_token_count = len(raw_tokens["input_ids"][0])
 
             inputs = self.processor(
                 images=img,
@@ -102,8 +151,13 @@ class CLIPFeatureExtractor:
                 max_length=77,
             )
 
+            # Count actual tokens fed (attention_mask sum includes BOS+EOT)
+            token_count = int(inputs["attention_mask"][0].sum().item())
+            truncated = original_token_count > 77
+
             dev = device or self.device
             target_device = torch.device(dev) if isinstance(dev, str) else dev
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
 
             with torch.no_grad():
                 outputs = self.model(**inputs)
@@ -113,6 +167,9 @@ class CLIPFeatureExtractor:
             return {
                 "image_features": image_features.cpu(),
                 "text_features": text_features.cpu(),
+                "text_token_count": token_count,
+                "text_original_token_count": original_token_count,
+                "text_truncated": truncated,
             }
         except Exception as exc:
             raise FeatureExtractionError(f"encode_pair failed: {exc}") from exc
@@ -132,8 +189,14 @@ class CLIPFeatureExtractor:
                     loaded_images.append(img)
 
             inputs = self.processor(images=loaded_images, return_tensors="pt")
+            target_device = torch.device(device or self.device)
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_image_features(**inputs)
+
+            if hasattr(outputs, "pooler_output"):
+                outputs = outputs.pooler_output
+
             return outputs.cpu()
         except Exception as exc:
             raise FeatureExtractionError(f"encode_images failed: {exc}") from exc
@@ -152,8 +215,12 @@ class CLIPFeatureExtractor:
                 truncation=True,
                 max_length=77,
             )
+            target_device = torch.device(device or self.device)
+            inputs = {key: value.to(target_device) for key, value in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.get_text_features(**inputs)
+            if hasattr(outputs, "pooler_output"):
+                outputs = outputs.pooler_output
             return outputs.cpu()
         except Exception as exc:
             raise FeatureExtractionError(f"encode_texts failed: {exc}") from exc

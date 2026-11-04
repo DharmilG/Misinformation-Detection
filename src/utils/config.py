@@ -9,6 +9,7 @@ changing a limit or version string is a single-file edit.
 from __future__ import annotations
 
 import pathlib
+import os
 
 # ── Image validation ──────────────────────────────────────────────────────
 MAX_IMAGE_BYTES: int        = 10 * 1024 * 1024   # 10 MB
@@ -29,6 +30,15 @@ PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 DATA_DIR     = PROJECT_ROOT / "data"
 CORPUS_PATH  = DATA_DIR / "corpus.json"
 SAMPLES_PATH = DATA_DIR / "samples" / "samples.json"
+_DATASET_ROOT = PROJECT_ROOT / "dataset"
+CHECKPOINT_PATH = pathlib.Path(
+    os.environ.get(
+        "MISINFO_CHECKPOINT_PATH",
+        str(_DATASET_ROOT / "models" / "checkpoint")
+        if (_DATASET_ROOT / "models" / "checkpoint").is_dir()
+        else str(PROJECT_ROOT / "models" / "checkpoint"),
+    )
+)
 
 # ── Version strings (increment when the artefact changes) ────────────────
 MODEL_VERSION            = "open-clip-ViT-B-32-laion2b-s34b-b79k-v1"

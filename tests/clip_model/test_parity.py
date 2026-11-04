@@ -33,13 +33,12 @@ def test_skip_when_reference_absent():
     pytest.skip("the NewsCLIPpings reference features are not present at %s" % REFERENCE_ROOT)
 
 
-@known_gap(
+@case(
     "parity.id_alignment",
     "F8",
     "fast",
     "doc/01 §12.2",
     "The diagnostic joins the reference and the corpus on (caption_id, image_id), not on row order, and reports the coverage.",
-    "the diagnostic does not exist, so there is no join",
 )
 def test_id_alignment(dataset_root):
     from parity import align_by_ids
@@ -49,13 +48,12 @@ def test_id_alignment(dataset_root):
     assert report["coverage_ratio"] > 0.0
 
 
-@known_gap(
+@case(
     "parity.text_path_within_tolerance",
     "F8",
     "fast",
     "doc/01 §12.4",
     "The text embeddings agree with the reference within the provisional threshold.",
-    "the diagnostic does not exist, so the text path is never compared",
 )
 def test_text_path_within_tolerance(dataset_root):
     from parity import compare_text_path
@@ -64,13 +62,12 @@ def test_text_path_within_tolerance(dataset_root):
     assert report["mean_cosine"] >= 0.99, "the text path diverged: %.4f" % report["mean_cosine"]
 
 
-@known_gap(
+@case(
     "parity.image_path_excluded",
     "F8",
     "fast",
     "doc/01 §12.8",
     "The image path is excluded from the comparison, and the report states why: the corpus photographs were re-encoded at 256 px.",
-    "the diagnostic does not exist, so the exclusion cannot be stated",
 )
 def test_image_path_excluded(dataset_root):
     from parity import compare_image_path
@@ -80,13 +77,12 @@ def test_image_path_excluded(dataset_root):
     assert "256" in report["reason"], "the exclusion does not state its reason"
 
 
-@known_gap(
+@case(
     "parity.report_generated",
     "F8",
     "fast",
     "doc/01 §12.7",
     "The diagnostic writes a report containing the preconditions, the metrics, the outcome, and any investigation notes.",
-    "the diagnostic does not exist, so no report is produced",
 )
 def test_report_generated(dataset_root, tmp_path):
     from parity import run_diagnostic

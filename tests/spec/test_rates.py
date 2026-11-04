@@ -17,13 +17,12 @@ def _rates_module():
     return importlib.import_module("src.evaluation.rates")
 
 
-@known_gap(
+@case(
     "rates.definitions_and_denominators",
     "F10",
     "fast",
     "doc/07 §9",
     "Six availability rates are defined with explicit denominators and never collapsed.",
-    "availability rates evaluation module is not yet implemented",
 )
 def test_rates_definitions_and_denominators():
     mod = _rates_module()
@@ -55,13 +54,12 @@ def test_rates_definitions_and_denominators():
     assert rates["conditional_decision_availability_rate"] == 70 / 90
 
 
-@known_gap(
+@case(
     "rates.rejection_is_success_for_invalid",
     "F10",
     "fast",
     "doc/07 §9.1",
     "A rejection view is counted as a success for invalid requests, not a pipeline failure.",
-    "rejection rate categorization is not yet implemented",
 )
 def test_rates_rejection_is_success_for_invalid():
     mod = _rates_module()
@@ -74,13 +72,12 @@ def test_rates_rejection_is_success_for_invalid():
     assert outcome["is_pipeline_failure"] is False
 
 
-@known_gap(
+@case(
     "rates.decision_availability_dual_factor",
     "F10",
     "fast",
     "doc/07 §9.1",
     "Decision availability rate reflects evidence coverage and reliability together, reported alongside conditional decision availability.",
-    "dual factor rate reporting is not yet implemented",
 )
 def test_rates_decision_availability_dual_factor():
     mod = _rates_module()
@@ -92,13 +89,12 @@ def test_rates_decision_availability_dual_factor():
     assert "evidence coverage and component reliability together" in report.lower()
 
 
-@known_gap(
+@case(
     "rates.conflicting_is_decided_not_resolved",
     "F10",
     "fast",
     "doc/07 §9.1",
     "CONFLICTING is a decided outcome in availability rates, but recorded as not resolving the truth of the claim.",
-    "conflicting outcome distinction is not yet implemented",
 )
 def test_rates_conflicting_is_decided_not_resolved():
     mod = _rates_module()

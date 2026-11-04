@@ -368,7 +368,7 @@ def render_report_text(report: ReportModel) -> str:
     """
     # Assembling section by section in the same order as the report model (§16)
     sections: list[list[str]] = [
-        [f"# Misinformation Detection — Analysis Report\n"],
+        [f"# Analysis Report\n"],
         _render_input(report.input),
         _render_classifier(report.classifier),
         _render_evidence(report.evidence),

@@ -15,7 +15,10 @@ from typing import Any
 
 import torch
 import torch.nn.functional as F
-from classifier import build_features, create_model
+try:
+    from .classifier import build_features, create_model
+except ImportError:
+    from classifier import build_features, create_model
 from torch import nn
 
 # ---------------------------------------------------------------------------
@@ -190,8 +193,12 @@ class LoadedClassifier:
 
         # Operating threshold and temperature
         inf_block = self.config.get("inference", {})
-        self.threshold = float(inf_block.get("operating_threshold", 0.5))
-        self.feature_family = inf_block.get("feature_family", "C")
+        self.threshold = float(
+            inf_block.get("operating_threshold", self.metrics.get("threshold", 0.5))
+        )
+        self.feature_family = inf_block.get(
+            "feature_family", self.config.get("candidate", "C")
+        )
         self.temperature = float(self.calibration.get("temperature", 1.0)) if self.calibration else 1.0
 
     def _prepare_features(
