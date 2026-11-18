@@ -1,6 +1,6 @@
 # Research results — out-of-context image–caption verification project
 
-**Status:** research instrument complete; first valid research results partially obtained.
+**Status:** research instrument complete; definitive RAG comparison run under a frozen protocol and reported as inconclusive.
 **Date of this report:** 2026-11-18.
 **Scope of evidence:** a 10-case pilot (validation split only) plus a full conformance suite. The 7,264-row held-out test set was not touched during exploration.
 
@@ -18,7 +18,7 @@ The most defensible contribution is **methodological**. While building the RAG s
 
 All three were found, fixed, and pinned with conformance cases. A fourth limitation remains: the deterministic assessor labels plain captions `unresolved`, so it cannot produce SUPPORTED/CONTRADICTED for newsroom-style text. That is a genuine capability limit, not a bug to tune away.
 
-**We therefore do not yet have a valid answer to "does RAG beat non-RAG?"** The only recorded comparison (`reports/rag_non_rag_eval.json`) is a 50-row fixture check, and our pilot was invalidated by the defects above. What we *do* have is a working pipeline with measured retrieval quality and per-stage attribution, ready for the first real experiment.
+**The definitive RAG comparison has now been run under the pre-registered protocol in `research/protocol.md`.** Its result is **inconclusive**: Δ accuracy = 0.000 with a bootstrap 95% CI of [−0.600, +0.600]. Critically, the local assessor returned `SUPPORTED` for all 10 claims, including the false ones, so it did not discriminate. The result is reported as-is; the assessor was not re-prompted after the run.
 
 ---
 
@@ -123,23 +123,46 @@ From `reports/rag_non_rag_eval.json`, a **50-row fixture check of the evaluator*
 
 This is a pipeline sanity check, **not evidence about RAG**. Both arms are far below the deployed classifier, and the outcomes are a four-class claim layer rather than binary image–caption agreement.
 
-### Our pilot (10 cases, closed-world corpus)
+### Definitive run — pre-registered protocol, local assessor
+
+Executed with `research/protocol.md` frozen in advance; model `qwen3:8b` via local
+Ollama, temperature 0, prompt `rag-v1`, closed-world corpus hash `04974b96…`,
+baseline arm from real no-evidence classifier predictions.
+
+| Arm | Accuracy | Macro F1 |
+|---|---|---|
+| C1 non-RAG (classifier, no evidence) | 0.500 | 0.333333 |
+| C5 RAG (retrieval + local assessor) | 0.500 | 0.333333 |
+| **Paired Δ (C5 − C1)** | **0.000** | — |
+| **Bootstrap 95% CI (1,000 draws, seed 42)** | **[−0.600, +0.600]** | — |
+| Same-prediction rate C1/C5 | 0.000 | |
 
 | Stage | Measurement |
 |---|---|
 | Retrieval recall@5 | **0.714286** |
 | Retrieval precision@5 | 0.142857 |
 | Empty retrieval rate | 0.000 |
-| Synthetic passage rate | 0.000 (regression guard) |
-| Outcomes (C5) | 10 × INCONCLUSIVE |
-| Accuracy, every condition C0–C6 | 0.500 |
-| Macro F1, every condition | 0.333333 |
-| RAG Δ (C5 vs C0) | 0.000, bootstrap CI [0, 0] |
-| Same-prediction rate | 1.000 |
+| Synthetic passage rate | 0.000 |
+| Assessor status | OK in 10/10 |
+| Assessor outcomes | **SUPPORTED in 10/10** |
+| Real citation ids recorded | yes (e.g. 713948, 62103, 175912) |
 
-**Why no difference?** Retrieval is not the bottleneck — the true caption is rank 1 for several mismatched cases. The assessor accepts a citation but classifies it `unresolved`; `run_assessment` counts only `supported` and `contradicted` toward an outcome, so support_count = contra_count = 0 and the outcome is INCONCLUSIVE. With no outcome, C5's explicit mapping cannot change the label, so RAG and non-RAG produce identical decisions.
+**Protocol verdict: INCONCLUSIVE** — the CI spans zero, so neither "RAG helps"
+nor "RAG hurts" can be claimed.
 
-**Conclusion:** we cannot yet say RAG is better or worse. The observed equality is caused by a downstream capability limit, not by evidence being unhelpful. Answering the question requires an assessor that can resolve plain captions — a small local vision–language model was designed for this and remains unbuilt.
+**Why it is inconclusive rather than a clean null.** The C5 arm does not merely
+match C1 — it disagrees with it on **every** case (same-prediction rate 0.000).
+The assessor labelled all ten claims `SUPPORTED`, including the five genuinely
+out-of-context ones, so RAG flipped every MISMATCHED prediction to MATCHED. The
+net accuracy happened to stay 0.500. This is a **degenerate assessor**, not a
+neutral one, and it means the comparison did not measure the intended effect.
+
+**Conclusion that can be derived:** retrieval is demonstrably not the bottleneck
+(recall@5 = 0.714, true caption often rank 1). The bottleneck is claim assessment:
+the deterministic heuristic cannot resolve plain captions, and the local
+`qwen3:8b` assessor defaults to agreement. Both were observed under fixed
+protocol. Whether RAG helps therefore remains **unanswered**, not answered
+negatively. Per the protocol, the assessor and prompt were not tuned after the run.
 
 ---
 
@@ -212,7 +235,7 @@ Directionally, the classifier score ranks errors better than raw cosine. With n 
 
 ## 8. What to fix next, in order
 
-1. **Real assessor.** Wire a small local vision–language model (Ollama, `minicpm-v4.6:1b` or `qwen3.5:4b`) so evidence can actually resolve a claim. Design already in `C:\Users\Ronny\.opencode\plan\`.
+1. **Non-degenerate assessor.** The protocol run showed `qwen3:8b` returns `SUPPORTED` for all claims, including false ones. This needs a **new pre-registered follow-up study** with a different model or prompt — not a silent post-hoc re-prompt of this run.
 2. **Re-run Study 4** to get the first valid RAG vs non-RAG answer.
 3. **Produce a real baseline arm** for `non_rag_outcome` — it is currently null, so the paired protocol is incomplete.
 4. **Package the checkpoint** with `release.json` and verify it via `scripts/verify_checkpoint.py`.
@@ -228,6 +251,7 @@ Do not tune the keyword assessor to produce a favourable RAG result — that wou
 | Location | Contains | Committed? |
 |---|---|---|
 | `result.md` (this file) | Consolidated conclusions, numbers, limitations | Yes |
+| `research/protocol.md` | Pre-registered RAG protocol and decision rule | Yes |
 | `doc/00`–`doc/07` | Contracts, architecture, layout, traceability | Yes |
 | `data/research/README.md` | Data provenance, corpus scope, review history | Yes |
 | `C:\Users\Ronny\.opencode\plan\` | Study designs, implementation plans | No — outside the repo |

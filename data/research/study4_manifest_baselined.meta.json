@@ -1,0 +1,18 @@
+{
+  "source": "data\\research\\study4_manifest.jsonl",
+  "output": "data\\research\\study4_manifest_baselined.jsonl",
+  "mapping": {
+    "1": "CONTRADICTED",
+    "0": "SUPPORTED"
+  },
+  "provenance": {
+    "candidate": "D-C",
+    "threshold": 0.45065754652023315,
+    "temperature": 1.285,
+    "temperature_provenance": "fitted_on_val_7024_rows",
+    "checkpoint_dir": "dataset\\models\\checkpoint",
+    "weights_sha256": "eebf518f3e286e2a09edc0c2ded0d9c01e2a27ec7bb9a550d2b2c56d4e8a9134",
+    "encoder_model_id": "openai/clip-vit-base-patch32",
+    "encoder_revision": "e6a30b603a447e25185c3e6022e0e4b85c2763f0"
+  }
+}

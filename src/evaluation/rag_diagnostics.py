@@ -120,6 +120,13 @@ def trace_retrieval(
     )
 
 
+def _citation_id(citation: Any) -> str | None:
+    """Citation ids arrive as strings from the local assessor, objects from the heuristic."""
+    if isinstance(citation, str):
+        return citation
+    return getattr(citation, "source_id", None)
+
+
 def _as_assessment_passages(passages: tuple[Any, ...]) -> tuple[Any, ...]:
     """Adapt flat retrieval passages to the nested schema run_assessment expects.
 
@@ -163,14 +170,28 @@ def _as_assessment_passages(passages: tuple[Any, ...]) -> tuple[Any, ...]:
 
 
 def trace_assessment(
-    case_id: str, condition: str, caption: str, passages: tuple[Any, ...]
+    case_id: str,
+    condition: str,
+    caption: str,
+    passages: tuple[Any, ...],
+    *,
+    assessor: Any = None,
 ) -> tuple[Any, StageRecord]:
+    def call():
+        if assessor is not None:
+            return assessor.assess(caption, tuple(passages))
+        return run_assessment(caption, _as_assessment_passages(passages))
+
     result, record = _timed(
         "assessment",
         condition,
         case_id,
-        {"caption": caption, "passage_ids": [getattr(p, "chunk_id", None) for p in passages]},
-        lambda: run_assessment(caption, _as_assessment_passages(passages)),
+        {
+            "caption": caption,
+            "passage_ids": [getattr(p, "chunk_id", None) for p in passages],
+            "assessor": getattr(assessor, "model_id", "heuristic"),
+        },
+        call,
         lambda r: {
             "status": getattr(r, "status", None),
             "outcome": getattr(r, "outcome", None),
@@ -179,10 +200,10 @@ def trace_assessment(
             "reason": getattr(r, "reason", None),
             "error_detail": getattr(r, "error_detail", None),
             "accepted_citation_ids": [
-                getattr(c, "source_id", None) for c in (getattr(r, "accepted_citations", ()) or ())
+                _citation_id(c) for c in (getattr(r, "accepted_citations", ()) or ())
             ],
             "rejected_citation_ids": [
-                getattr(c, "source_id", None) for c in (getattr(r, "rejected_citations", ()) or ())
+                _citation_id(c) for c in (getattr(r, "rejected_citations", ()) or ())
             ],
             "unresolved_items": list(getattr(r, "unresolved_items", ()) or ()),
             "conflicts": list(getattr(r, "conflicts", ()) or ()),

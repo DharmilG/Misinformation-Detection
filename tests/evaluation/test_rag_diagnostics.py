@@ -210,6 +210,29 @@ def test_adapter_converts_flat_passages():
 
 
 @case(
+    "integration.real_passage_can_be_assessed",
+    "F10",
+    "fast",
+    "doc/07 §12.2",
+    "A real retrieved passage reaches the assessor and returns an OK status.",
+)
+def test_real_passage_can_be_assessed():
+    from src.evaluation.rag_diagnostics import _as_assessment_passages
+    from src.rag.assessment import run_assessment
+    from src.retrieval.retrieval_api import retrieve
+
+    result = retrieve("flood response operations", top_k=3)
+    assert result.passages, "the local corpus returned no passages for a matching query"
+    assessment = run_assessment(
+        "flood response operations", _as_assessment_passages(tuple(result.passages))
+    )
+    assert assessment.status == "OK", getattr(assessment, "error_detail", None)
+    assert assessment.outcome in (
+        "SUPPORTED", "CONTRADICTED", "INCONCLUSIVE", "CONFLICTING"
+    )
+
+
+@case(
     "rag_diag.placeholder_on_missing",
     "F10",
     "fast",

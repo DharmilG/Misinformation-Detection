@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.evaluation.local_assessor import make_assessor  # noqa: E402
 from src.evaluation.rag_diagnostics import (  # noqa: E402
     CaseTrace,
     to_row,
@@ -93,6 +94,9 @@ def _citation_dicts(assessment: Any) -> list[dict[str, Any]]:
     for citation in getattr(assessment, "accepted_citations", ()) or ():
         if isinstance(citation, dict):
             citations.append(citation)
+        elif isinstance(citation, str):
+            # LocalModelAssessor returns passage ids directly.
+            citations.append({"source_id": citation})
         else:
             citations.append(
                 {
@@ -121,6 +125,7 @@ def run_case(
     cosine_threshold: float,
     confidence_cut: float,
     corpus_path=None,
+    assessor=None,
 ) -> CaseTrace:
     cid = str(case["id"])
     claim = str(case["claim"])
@@ -158,7 +163,9 @@ def run_case(
             passages = ()
 
         if condition in ("C3", "C4", "C5", "C6"):
-            assessment, record = trace_assessment(cid, condition, claim, passages)
+            assessment, record = trace_assessment(
+                cid, condition, claim, passages, assessor=assessor
+            )
             stages.append(record)
 
             if condition in ("C4", "C5", "C6"):
@@ -203,6 +210,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     unknown = [c for c in conditions if c not in CONDITIONS]
     if unknown:
         raise ManifestError(f"unknown conditions: {unknown}")
+    assessor = make_assessor(args.assessor)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -215,6 +223,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "cosine_threshold": args.cosine_threshold,
         "confidence_cut": args.confidence_cut,
         "corpus_path": str(args.corpus) if args.corpus else None,
+        "assessor": assessor.model_id,
         **runtime.as_provenance(),
     }
     output.with_suffix(".meta.json").write_text(
@@ -233,6 +242,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     cosine_threshold=args.cosine_threshold,
                     confidence_cut=args.confidence_cut,
                     corpus_path=args.corpus,
+                    assessor=assessor,
                 )
                 row = to_row(trace)
                 row["gold_outcome"] = case["gold_outcome"]
@@ -258,6 +268,12 @@ def main(argv: list[str] | None = None) -> int:
         "--corpus",
         default=None,
         help="JSON list of passage records; defaults to data/corpus.json",
+    )
+    parser.add_argument(
+        "--assessor",
+        default="heuristic",
+        choices=("heuristic", "local-vlm"),
+        help="claim assessor; local-vlm uses qwen3:8b via local Ollama",
     )
     args = parser.parse_args(argv)
     try:
