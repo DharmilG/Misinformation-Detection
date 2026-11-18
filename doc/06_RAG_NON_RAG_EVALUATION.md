@@ -767,6 +767,8 @@ A filter that only keeps what agrees with the claim is a bias bug, and this is t
 
 `OK` with zero passages and `UNAVAILABLE` are different conditions with different messages, and they lead to different outcomes downstream: the first produces an Inconclusive assessment, the second produces a stated system failure.
 
+The default `retrieve()` entry point implements this by delegating to the local TF-IDF corpus index, which is loaded from `data/corpus.json`. It adapts real passage ids, excerpts, and relevance scores into the `RetrievalResult` schema; it never fabricates passage text. An unavailable corpus returns `UNAVAILABLE` with a reason. The `synthetic_passages` flag in the RAG ablation diagnostics is a regression guard: it must remain false for every default retrieval.
+
 ---
 
 ## 20. Deduplication and diversity

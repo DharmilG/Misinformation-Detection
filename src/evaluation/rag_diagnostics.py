@@ -90,6 +90,7 @@ def trace_retrieval(
         passages = list(getattr(result, "passages", ()) or ())
         return {
             "status": getattr(result, "status", None),
+            "reason": getattr(result, "reason", None),
             "passage_count": len(passages),
             "ids": [getattr(p, "chunk_id", None) for p in passages],
             "scores": [float(getattr(p, "score", 0.0)) for p in passages],

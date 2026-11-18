@@ -1,13 +1,24 @@
 """Top-level retriever API and integration contract of Document 06 §18, §19, §23.
 
-Provides retrieve() entry point strictly decoupled from classifier signals,
-with structured RetrievalResult schema and empty index handling.
+Provides retrieve() strictly decoupled from classifier signals, with a
+structured RetrievalResult schema and explicit unavailability handling.
+
+The default path uses the real local TF-IDF corpus in ``corpus.py``.  It never
+fabricates passage text.  ``retrieve_with_mock_index`` remains a conformance
+helper and is the only source of synthetic passages in this module.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+try:
+    from src.retrieval import corpus as _corpus
+    from src.retrieval.retrieval_lexical import rank_candidates_in_memory
+except ImportError:  # module imported with src/retrieval on sys.path
+    import corpus as _corpus  # type: ignore[no-redef]
+    from retrieval_lexical import rank_candidates_in_memory  # type: ignore[no-redef]
 
 
 @dataclass(frozen=True)
@@ -25,6 +36,53 @@ class RetrievalResult:
     status: str
     query: str
     passages: list[RetrievedPassage] = field(default_factory=list)
+    reason: str | None = None
+
+
+def _from_corpus(query: str, top_k: int) -> RetrievalResult:
+    """Delegate to the real TF-IDF retriever and adapt its result schema."""
+    result = _corpus.retrieve_passages(query, top_k=top_k)
+    passages = [
+        RetrievedPassage(
+            chunk_id=str(item.passage.passage_id),
+            document_id=str(item.passage.passage_id),
+            text=str(item.passage.excerpt),
+            score=float(item.relevance_score),
+            dense_score=0.0,  # no dense model is in use
+            lexical_score=float(item.relevance_score),
+        )
+        for item in result.passages
+    ]
+    return RetrievalResult(
+        status=result.status,
+        query=query,
+        passages=passages,
+        reason=result.reason,
+    )
+
+
+def _from_index(index: Any, query: str, top_k: int) -> RetrievalResult:
+    """Rank a caller-supplied in-memory corpus with BM25, without synthetic text."""
+    if not isinstance(index, list) or not index:
+        return RetrievalResult(status="OK", query=query, passages=[])
+    ranked = rank_candidates_in_memory(index, query)[:top_k]
+    by_id = {str(d.get("chunk_id", f"c{i}")): d for i, d in enumerate(index)}
+    passages = []
+    for chunk_id, score in ranked:
+        if score <= 0.0:
+            continue
+        doc = by_id.get(chunk_id, {})
+        passages.append(
+            RetrievedPassage(
+                chunk_id=chunk_id,
+                document_id=str(doc.get("document_id", chunk_id)),
+                text=str(doc.get("text", "")),
+                score=float(score),
+                dense_score=0.0,
+                lexical_score=float(score),
+            )
+        )
+    return RetrievalResult(status="OK", query=query, passages=passages)
 
 
 def retrieve(
@@ -34,26 +92,16 @@ def retrieve(
     tau_dense: float = 0.50,
     alpha_relative: float = 0.50,
 ) -> RetrievalResult:
-    """Retrieve top-k relevant evidence passages for a query string."""
+    """Retrieve top-k real evidence passages for a query.
+
+    ``index=None`` uses the local TF-IDF corpus.  A supplied list of chunk
+    dicts is ranked with in-memory BM25.  Classifier signals are never inputs.
+    """
     if not query.strip():
         return RetrievalResult(status="OK", query=query, passages=[])
-
-    if index is None or getattr(index, "is_empty", False):
-        return RetrievalResult(status="OK", query=query, passages=[])
-
-    # Sample ranked passages if index is present
-    passages = [
-        RetrievedPassage(
-            chunk_id=f"chunk_{i}",
-            document_id=f"doc_{i}",
-            text=f"Relevant passage {i} concerning {query}",
-            score=round(0.85 - (i * 0.05), 3),
-            dense_score=round(0.80 - (i * 0.04), 3),
-            lexical_score=round(0.75 - (i * 0.03), 3),
-        )
-        for i in range(min(top_k, 3))
-    ]
-    return RetrievalResult(status="OK", query=query, passages=passages)
+    if index is None:
+        return _from_corpus(query, top_k)
+    return _from_index(index, query, top_k)
 
 
 def retrieve_with_mock_index(

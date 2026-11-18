@@ -592,6 +592,7 @@ The full report, with the clause and the requirement for every case, is `reports
 | The research templates | Document 07 §12.2 | `template.no_test_split_rows`, `template.variants_prefilled`, `template.reproducible_seed` | fast | IMPLEMENTED |
 | The selective-prediction metrics | Document 07 §12.2 | `selective.risk_coverage_monotone`, `selective.aurc_bounds`, `selective.selective_accuracy_at_coverage`, `selective.overconfidence_rate`, `selective.stratified_by_failure_mode`, `selective.v0_extraction`, `selective.placeholder_on_missing` | fast | IMPLEMENTED |
 | The human-study instrument | Document 07 §12.2 | `study.counterbalanced_order`, `study.schedule_is_one_per_condition`, `study.rejects_remote_bind`, `study.records_anonymous_answers`, `study.metrics_by_condition`, `study.placeholder_on_missing` | fast | IMPLEMENTED |
+| The real local retriever | Document 06 §19, Document 07 §12.2 | `retriever_api.uses_real_corpus`, `retriever_api.no_synthetic_passages`, `retriever_api.unavailable_is_explicit`, `retriever_api.real_result_schema`, `retriever_api.empty_query_ok` | fast | IMPLEMENTED |
 
 ### 12.3 The contracts not yet covered
 
