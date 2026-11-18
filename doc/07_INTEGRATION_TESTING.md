@@ -589,6 +589,9 @@ The full report, with the clause and the requirement for every case, is `reports
 | The failure-audit input rules | Document 07 §12.2 | `audit.mechanical_variants_labels`, `audit.rejects_missing_gold`, `audit.rejects_authored_mechanical`, `audit.accepts_bom_manifest` | fast | IMPLEMENTED |
 | The failure-audit reporting rules | Document 07 §12.2 | `audit.paired_delta`, `audit.bootstrap_ci`, `audit.group_accuracy`, `audit.placeholder_on_missing`, `audit.accuracy_uses_gold_not_correct_flag` | fast | IMPLEMENTED |
 | The RAG stage diagnostics | Document 06 §42, Document 07 §12.2 | `rag_diag.stage_records_complete`, `rag_diag.non_ok_status_kept`, `rag_diag.synthetic_passages_detected`, `rag_diag.same_claims_enforced`, `rag_diag.recall_at_k`, `rag_diag.outcome_distribution_zero_classes`, `rag_diag.primary_failure_precedence`, `rag_diag.placeholder_on_missing` | fast | IMPLEMENTED |
+| The research templates | Document 07 §12.2 | `template.no_test_split_rows`, `template.variants_prefilled`, `template.reproducible_seed` | fast | IMPLEMENTED |
+| The selective-prediction metrics | Document 07 §12.2 | `selective.risk_coverage_monotone`, `selective.aurc_bounds`, `selective.selective_accuracy_at_coverage`, `selective.overconfidence_rate`, `selective.stratified_by_failure_mode`, `selective.v0_extraction`, `selective.placeholder_on_missing` | fast | IMPLEMENTED |
+| The human-study instrument | Document 07 §12.2 | `study.counterbalanced_order`, `study.schedule_is_one_per_condition`, `study.rejects_remote_bind`, `study.records_anonymous_answers`, `study.metrics_by_condition`, `study.placeholder_on_missing` | fast | IMPLEMENTED |
 
 ### 12.3 The contracts not yet covered
 
