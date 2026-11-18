@@ -828,6 +828,7 @@ nav_options = [
     C.H_EVIDENCE,
     C.H_METHODOLOGY,
     C.H_PERFORMANCE,
+    C.H_RESEARCH,
     C.H_PRIVACY,
 ]
 
@@ -1610,10 +1611,15 @@ elif page == C.H_PERFORMANCE:
         verdict = _audit.get("verdict", "unknown")
         st.write(f"Verdict: **{verdict.upper()}** | Checks passed: {sum(1 for c in _audit['checks'] if c['status']=='pass')}/{len(_audit['checks'])}")
 
-    # RAG vs Non-RAG evaluation
+    # Legacy evaluator sanity check - not a research result.
     if _rag_eval_path.is_file():
         st.markdown("---")
-        st.markdown("#### RAG vs Non-RAG Evaluation")
+        st.markdown("#### Evaluator Sanity Check (fixture)")
+        st.caption(
+            "These numbers come from a 50-row fixture check of the evaluation script. "
+            "They are NOT a research result. See the Research Results page for the "
+            "pre-registered comparison."
+        )
         _rag_eval = json.loads(_rag_eval_path.read_text(encoding="utf-8"))
         _non_rag = _rag_eval.get("non_rag", {})
         _rag = _rag_eval.get("rag", {})
@@ -1627,6 +1633,118 @@ elif page == C.H_PERFORMANCE:
             st.metric("\u0394 (RAG - Non-RAG)", f"{_paired.get('rag_minus_non_rag_accuracy', 0)*100:.1f}%")
         st.write(f"Samples evaluated: {_non_rag.get('rows', '—')}")
         st.write(f"Same prediction rate: {_paired.get('same_prediction_rate', 0)*100:.1f}%")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# RESEARCH RESULTS — pre-registered RAG comparison and study summary
+# ══════════════════════════════════════════════════════════════════════════
+elif page == C.H_RESEARCH:
+    st.markdown(
+        """
+        <div class='eyebrow'>Research Evaluation</div>
+        <div class='header-title'>Research Results</div>
+        <div class='header-desc'>
+            Pre-registered RAG comparison, retrieval quality, and known limitations.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _summary_path = pathlib.Path("research/results_summary.json")
+    if not _summary_path.is_file():
+        st.warning(
+            "Research summary not found. Expected research/results_summary.json. "
+            "The full write-up is in result.md."
+        )
+    else:
+        _summary = json.loads(_summary_path.read_text(encoding="utf-8"))
+        _rag = _summary.get("rag", {})
+        _clf = _summary.get("classifier", {})
+        _conf = _summary.get("conformance", {})
+
+        st.markdown("#### RAG vs Non-RAG — pre-registered result")
+        _verdict = _rag.get("verdict", "UNKNOWN")
+        _verdict_color = "#FEF3C7" if _verdict == "INCONCLUSIVE" else (
+            "#D1FAE5" if _verdict == "RAG HELPS" else "#FEE2E2"
+        )
+        st.markdown(
+            f"<div style='background:{_verdict_color}; padding:14px; border-radius:8px; "
+            f"font-weight:700;'>Verdict: {escape_display(_verdict)}</div>",
+            unsafe_allow_html=True,
+        )
+
+        rc1, rc2, rc3 = st.columns(3)
+        with rc1:
+            st.metric("Non-RAG Accuracy", f"{_rag.get('non_rag_accuracy', 0)*100:.1f}%")
+        with rc2:
+            st.metric("RAG Accuracy", f"{_rag.get('rag_accuracy', 0)*100:.1f}%")
+        with rc3:
+            st.metric("Paired Delta", f"{_rag.get('paired_delta', 0)*100:+.1f}%")
+
+        _ci = _rag.get("ci95", [0, 0])
+        st.write(
+            f"Bootstrap 95% CI ({_rag.get('bootstrap_draws', 0):,} draws): "
+            f"**[{_ci[0]:+.2f}, {_ci[1]:+.2f}]** — "
+            "the interval spans zero, so neither benefit nor harm is established."
+        )
+        st.write(
+            f"Same-prediction rate: **{_rag.get('same_prediction_rate', 0)*100:.1f}%**. "
+            f"Assessor: **{escape_display(str(_rag.get('assessor_model', 'unknown')))}** "
+            f"({escape_display(str(_rag.get('assessor_prompt_version', 'unknown')))})."
+        )
+
+        if _rag.get("assessor_is_degenerate"):
+            st.warning(
+                "The assessor returned SUPPORTED for every claim, including false ones. "
+                "RAG changed every decision but net accuracy cancelled out. This is a "
+                "degenerate assessor, not a neutral result — the comparison did not "
+                "measure the intended effect."
+            )
+
+        with st.expander("Retrieval quality"):
+            rq1, rq2, rq3 = st.columns(3)
+            with rq1:
+                st.metric("Recall@5", f"{_rag.get('retrieval_recall_at_5', 0):.3f}")
+            with rq2:
+                st.metric("Precision@5", f"{_rag.get('retrieval_precision_at_5', 0):.3f}")
+            with rq3:
+                st.metric("Empty retrieval", f"{_rag.get('empty_retrieval_rate', 0):.1%}")
+            st.write(
+                "Retrieval is demonstrably not the bottleneck: the true caption is "
+                "often rank 1. The remaining limit is claim assessment."
+            )
+
+        st.markdown("#### Classifier and conformance")
+        cc1, cc2, cc3 = st.columns(3)
+        with cc1:
+            st.metric("Test Accuracy", f"{_clf.get('test_accuracy', 0)*100:.1f}%")
+        with cc2:
+            st.metric("Macro F1", f"{_clf.get('test_macro_f1', 0)*100:.1f}%")
+        with cc3:
+            st.metric("ROC-AUC", f"{_clf.get('test_roc_auc', 0)*100:.1f}%")
+        st.write(
+            f"Conformance: **{_conf.get('passed', 0)} passed**, "
+            f"{_conf.get('skipped', 0)} skipped, {_conf.get('failed', 0)} failed "
+            f"of {_conf.get('registered_cases', 0)} registered cases."
+        )
+
+        _pilot = _summary.get("pilot_studies", {})
+        with st.expander("Pilot studies (not publishable evidence)"):
+            st.caption(_pilot.get("scope", ""))
+            st.json(_pilot)
+
+        with st.expander("Defects found and fixed"):
+            for item in _summary.get("defects_found_and_fixed", []):
+                st.write(f"- {escape_display(str(item))}")
+
+        with st.expander("Limitations"):
+            for item in _summary.get("limitations", []):
+                st.write(f"- {escape_display(str(item))}")
+
+        st.caption(
+            f"Full write-up: {escape_display(str(_summary.get('report', 'result.md')))} "
+            f"· Protocol: {escape_display(str(_summary.get('protocol', 'research/protocol.md')))}"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════

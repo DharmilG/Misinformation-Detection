@@ -1,0 +1,72 @@
+{
+  "report": "result.md",
+  "protocol": "research/protocol.md",
+  "generated_for": "research results display in the Streamlit UI",
+  "status": "definitive RAG comparison run under a frozen protocol; result inconclusive",
+  "classifier": {
+    "candidate": "D-C",
+    "test_accuracy": 0.6920429515418502,
+    "test_macro_f1": 0.6917627815383192,
+    "test_roc_auc": 0.7783161620762095,
+    "threshold": 0.45065754652023315,
+    "calibration_temperature": 1.285,
+    "temperature_provenance": "refit on 7024 validation rows; original unrecorded",
+    "rows": {"train": 25000, "val": 7024, "test": 7264}
+  },
+  "conformance": {
+    "registered_cases": 408,
+    "passed": 407,
+    "skipped": 1,
+    "failed": 0,
+    "note": "the skip is parity.skip_when_reference_absent and is asserted"
+  },
+  "rag": {
+    "protocol": "research/protocol.md",
+    "verdict": "INCONCLUSIVE",
+    "decision_rule": "RAG helps only if delta > 0 and CI lower bound > 0; inconclusive if CI spans zero",
+    "non_rag_accuracy": 0.5,
+    "rag_accuracy": 0.5,
+    "paired_delta": 0.0,
+    "ci95": [-0.6, 0.6],
+    "bootstrap_draws": 1000,
+    "bootstrap_seed": 42,
+    "same_prediction_rate": 0.0,
+    "retrieval_recall_at_5": 0.714286,
+    "retrieval_precision_at_5": 0.142857,
+    "empty_retrieval_rate": 0.0,
+    "synthetic_passage_rate": 0.0,
+    "assessor_model": "qwen3:8b",
+    "assessor_prompt_version": "rag-v1",
+    "assessor_status": "OK in 10/10",
+    "assessor_outcomes": {"SUPPORTED": 10, "CONTRADICTED": 0, "INCONCLUSIVE": 0, "CONFLICTING": 0},
+    "assessor_is_degenerate": true,
+    "interpretation": "The assessor labelled every claim SUPPORTED, including false ones. RAG changed every decision but net accuracy cancelled at 0.500. The comparison did not measure the intended effect."
+  },
+  "pilot_studies": {
+    "scope": "10-case validation pilot; not publishable evidence",
+    "study1": {
+      "v0_accuracy": 0.5,
+      "ece": 0.103969,
+      "paired_delta": {"V1": 0.0, "V2": 0.0, "V3": 0.0, "V4": 0.2, "V5": 0.0, "V6": 0.0}
+    },
+    "study2": {
+      "aurc": {"cosine": 0.761151, "d_c_score": 0.418135, "calibrated_probability": 0.418135},
+      "selective_accuracy_at_50": {"cosine": 0.2, "d_c_score": 0.4, "calibrated_probability": 0.4}
+    }
+  },
+  "defects_found_and_fixed": [
+    "retrieval_api stub fabricated passages; now delegates to the real TF-IDF corpus",
+    "flat vs nested RetrievedPassage schema mismatch hid assessment failures; adapter added and error_detail recorded",
+    "neutral confidence capped below the citation threshold; corrected",
+    "citation ids lost in trace summarisers; corrected"
+  ],
+  "limitations": [
+    "10-case pilot, single reviewer, inter-annotator kappa unmeasurable",
+    "closed-world corpus of dataset captions, not web evidence",
+    "3 of 10 cases have no gold evidence at all",
+    "non_rag_outcome derived from classifier prediction, not a generative baseline",
+    "held-out test split evaluated once and not reused during exploration",
+    "no human-subject study yet",
+    "no release.json in models/; no deployment monitoring"
+  ]
+}
