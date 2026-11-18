@@ -34,15 +34,38 @@ Remaining limits:
 | File | Status |
 |---|---|
 | `study1_cases.jsonl` | filled; `mismatch_type` set for the 5 mismatched cases |
-| `study1_variants.jsonl` | 40 rows (V1/V3/V4/V6 × 10), all authored by `assistant-llm` |
-| `study1_annotations.jsonl` | 5 annotations, all by `assistant-llm` |
-| `study4_manifest.jsonl` | `gold_outcome` mapped from `gold_label` (MATCHED→SUPPORTED, MISMATCHED→CONTRADICTED); evidence IDs empty; `non_rag_outcome` null |
+| `study1_variants.jsonl` | 40 rows (V1/V3/V4/V6 × 10), AI-drafted then human-reviewed and adopted |
+| `study1_annotations.jsonl` | 5 annotations, AI-drafted then human-reviewed and adopted |
+| `study4_manifest.jsonl` | `gold_outcome` mapped from `gold_label`; 7/10 have real `gold_evidence_ids`; `non_rag_outcome` null |
+| `evidence_corpus.json` | 3,512 real ground-truth captions from `val.csv` |
 
-## Why the RAG fields are empty / null
+## Evidence corpus and gold evidence (added for Study 4)
 
-- **`gold_evidence_ids`: `[]`.** No real evidence corpus with stable passage IDs
-  exists in this checkout. `retrieve()` returns synthetic or empty passages.
-  An empty list is the honest value and is itself evidence for failure mode F1.
+`evidence_corpus.json` is a **closed-world corpus** built by
+`scripts/build_evidence_corpus.py` from the 3,512 consistent image–caption pairs
+in `val.csv`. Each passage id is the dataset `image_id`, and the passage text is
+the real ground-truth caption for that image. Provenance and a SHA-256 manifest
+hash are in `evidence_corpus.meta.json`.
+
+This is **not** web evidence and must be reported as closed-world. It is real
+data from the dataset, not authored text.
+
+`gold_evidence_ids` in `study4_manifest.jsonl` is derived deterministically: for
+a case whose image has a consistent caption in `val.csv`, the gold evidence id
+is that image id; otherwise the list is empty. 7 of 10 pilot cases have gold
+evidence. The derivations, including the evidence text, are recorded in
+`study4_evidence_judgements.jsonl` for audit.
+
+Measured on this corpus (10-case pilot): retrieval recall@5 = 0.714,
+precision@5 = 0.143, and the gold passage is rank 1 for several mismatched
+cases. Assessment then fails in 10/10 cases (no generation backend), so RAG
+changes no decision. The diagnosis is F6 (generation), not F1 (retrieval).
+
+## Why some RAG fields are still null
+
+- **`gold_evidence_ids`: `[]` for 3 of 10 cases.** Those images have no
+  consistent caption in `val.csv`, so no ground-truth evidence exists for them.
+  An empty list is the honest annotation, not a gap to fill by guessing.
 - **`non_rag_outcome`: `null`.** This is supposed to be the *baseline arm's
   output*, not a gold label. Copying the gold label into it would fabricate a
   paired comparison. It must be produced by running the baseline; until then it

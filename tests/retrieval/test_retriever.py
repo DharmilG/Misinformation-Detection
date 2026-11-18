@@ -117,7 +117,7 @@ def test_unavailable_is_explicit(monkeypatch):
 
     mod = _retriever_module()
 
-    def unavailable(query, top_k=5):
+    def unavailable(query, top_k=5, corpus_path=None):
         return SimpleNamespace(status="UNAVAILABLE", passages=(), reason="corpus missing")
 
     monkeypatch.setattr(mod._corpus, "retrieve_passages", unavailable)

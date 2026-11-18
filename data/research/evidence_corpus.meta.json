@@ -1,0 +1,7 @@
+{
+  "scope": "closed-world dataset captions",
+  "split": "val",
+  "source_file": "dataset/ooc_dataset/val.csv",
+  "passage_count": 3512,
+  "manifest_sha256": "04974b961de841715e863b8e83a709bbeae03b26eb43db6ca5cecb51fe411c58"
+}

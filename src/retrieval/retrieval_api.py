@@ -39,9 +39,9 @@ class RetrievalResult:
     reason: str | None = None
 
 
-def _from_corpus(query: str, top_k: int) -> RetrievalResult:
+def _from_corpus(query: str, top_k: int, corpus_path=None) -> RetrievalResult:
     """Delegate to the real TF-IDF retriever and adapt its result schema."""
-    result = _corpus.retrieve_passages(query, top_k=top_k)
+    result = _corpus.retrieve_passages(query, top_k=top_k, corpus_path=corpus_path)
     passages = [
         RetrievedPassage(
             chunk_id=str(item.passage.passage_id),
@@ -91,16 +91,18 @@ def retrieve(
     top_k: int = 5,
     tau_dense: float = 0.50,
     alpha_relative: float = 0.50,
+    corpus_path=None,
 ) -> RetrievalResult:
     """Retrieve top-k real evidence passages for a query.
 
-    ``index=None`` uses the local TF-IDF corpus.  A supplied list of chunk
+    ``index=None`` uses the local TF-IDF corpus.  ``corpus_path`` selects a
+    specific corpus file (used by research runs).  A supplied list of chunk
     dicts is ranked with in-memory BM25.  Classifier signals are never inputs.
     """
     if not query.strip():
         return RetrievalResult(status="OK", query=query, passages=[])
     if index is None:
-        return _from_corpus(query, top_k)
+        return _from_corpus(query, top_k, corpus_path)
     return _from_index(index, query, top_k)
 
 

@@ -1,0 +1,10 @@
+{"id": "v0001", "gold_evidence_ids": ["713948"], "evidence_text": "A worker collects cotton buds in the Vidarbha region of Maharashtra state India", "source": "val.csv consistent pair", "image_id": "713948"}
+{"id": "v0002", "gold_evidence_ids": ["62103"], "evidence_text": "President Barack Obama meets with senior advisors in the Oval Office on July 31 2011", "source": "val.csv consistent pair", "image_id": "62103"}
+{"id": "v0003", "gold_evidence_ids": ["175912"], "evidence_text": "Watch Elon Musk s Tesla car being used as a boat", "source": "val.csv consistent pair", "image_id": "175912"}
+{"id": "v0004", "gold_evidence_ids": ["824598"], "evidence_text": "Cleaning up his act Colin Farrell as Ray Velcoro", "source": "val.csv consistent pair", "image_id": "824598"}
+{"id": "v0005", "gold_evidence_ids": ["1263039"], "evidence_text": "Jamaica s Usain Bolt wins the men s 100m final in a world record time of 969sec", "source": "val.csv consistent pair", "image_id": "1263039"}
+{"id": "v0006", "gold_evidence_ids": ["107208"], "evidence_text": "Romney and Ryan shake hands with supporters at a rally at RandolphMacon College in Manassas", "source": "val.csv consistent pair", "image_id": "107208"}
+{"id": "v0007", "gold_evidence_ids": [], "evidence_text": null, "source": "val.csv consistent pair", "image_id": "219854"}
+{"id": "v0008", "gold_evidence_ids": [], "evidence_text": null, "source": "val.csv consistent pair", "image_id": "130273"}
+{"id": "v0009", "gold_evidence_ids": ["316347"], "evidence_text": "Pope Francis participates in a ceremony at La Loma de la Cruz in Holguin Cuba", "source": "val.csv consistent pair", "image_id": "316347"}
+{"id": "v0010", "gold_evidence_ids": [], "evidence_text": null, "source": "val.csv consistent pair", "image_id": "473339"}

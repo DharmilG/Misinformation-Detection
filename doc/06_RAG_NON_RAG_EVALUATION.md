@@ -1741,6 +1741,8 @@ The tests listed in the remaining subsections of this section are this component
 
 The RAG ablation study adds per-stage instrumentation in `src/evaluation/rag_diagnostics.py`. It wraps the retrieval, assessment, eligibility, injection, and outcome stages and records what each receives and returns, so a failure can be attributed to a stage rather than inferred from the final label. The instrumentation is registered in `07_INTEGRATION_TESTING.md` §12.2 and tested by `tests/evaluation/test_rag_diagnostics.py`. It does not modify this component's modules.
 
+Retrieval accepts an explicit `corpus_path` so a study can score against a closed-world corpus built from real dataset captions without replacing the shipped `data/corpus.json`. The corpus scope and its manifest hash must be reported with every result.
+
 ```bash
 # This component's fast suite
 pytest -m "not slow and not eval and not benchmark and not e2e"

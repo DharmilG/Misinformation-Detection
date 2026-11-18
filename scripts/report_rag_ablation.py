@@ -141,6 +141,16 @@ def primary_failure(row: dict[str, Any]) -> str:
         return "F1"
     if retrieval.get("synthetic_passages") or retrieval.get("passage_count", 0) == 0:
         return "F1"
+
+    # A failed/unavailable assessment means no generator produced a claim
+    # assessment.  The evidence was found but never used - this is a
+    # generation failure, not a retrieval or evidence-relevance failure.
+    assessment = row.get("assessment_outputs") or {}
+    if assessment.get("status") in ("FAILED", "UNAVAILABLE"):
+        return "F6"
+    if assessment.get("status") in ("SKIPPED", None):
+        return "F7"
+
     if row.get("eligibility_error") or row.get("injection_error"):
         return "F4"
     eligibility = row.get("eligibility_outputs") or {}

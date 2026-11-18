@@ -81,10 +81,16 @@ def _timed(
 
 
 def trace_retrieval(
-    case_id: str, condition: str, query: str, *, top_k: int = 5, index: Any = None
+    case_id: str,
+    condition: str,
+    query: str,
+    *,
+    top_k: int = 5,
+    index: Any = None,
+    corpus_path: Any = None,
 ) -> tuple[Any, StageRecord]:
     def call():
-        return retrieve(query, index=index, top_k=top_k)
+        return retrieve(query, index=index, top_k=top_k, corpus_path=corpus_path)
 
     def summarise(result):
         passages = list(getattr(result, "passages", ()) or ())
@@ -105,7 +111,12 @@ def trace_retrieval(
         }
 
     return _timed(
-        "retrieval", condition, case_id, {"query": query, "top_k": top_k}, call, summarise
+        "retrieval",
+        condition,
+        case_id,
+        {"query": query, "top_k": top_k, "corpus_path": str(corpus_path) if corpus_path else None},
+        call,
+        summarise,
     )
 
 

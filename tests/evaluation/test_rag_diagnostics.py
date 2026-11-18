@@ -157,6 +157,23 @@ def test_primary_failure_precedence():
 
 
 @case(
+    "rag_diag.generation_failure_attributed",
+    "F10",
+    "fast",
+    "doc/07 §12.2",
+    "A failed or unavailable assessment is attributed to generation, not to evidence relevance.",
+)
+def test_generation_failure_attributed():
+    row = {
+        "retrieval_outputs": {"synthetic_passages": False, "passage_count": 3},
+        "assessment_outputs": {"status": "FAILED"},
+    }
+    assert primary_failure(row) == "F6"
+    row["assessment_outputs"] = {"status": "UNAVAILABLE"}
+    assert primary_failure(row) == "F6"
+
+
+@case(
     "rag_diag.placeholder_on_missing",
     "F10",
     "fast",

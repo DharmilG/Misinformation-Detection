@@ -120,6 +120,7 @@ def run_case(
     top_k: int,
     cosine_threshold: float,
     confidence_cut: float,
+    corpus_path=None,
 ) -> CaseTrace:
     cid = str(case["id"])
     claim = str(case["claim"])
@@ -148,7 +149,9 @@ def run_case(
             # Adaptive gate: skip retrieval for cases the verifier is sure about.
             pass
         else:
-            retrieved, record = trace_retrieval(cid, condition, claim, top_k=top_k)
+            retrieved, record = trace_retrieval(
+                cid, condition, claim, top_k=top_k, corpus_path=corpus_path
+            )
             stages.append(record)
             passages = tuple(getattr(retrieved, "passages", ()) or ()) if retrieved else ()
         if condition == "C6" and confidence < confidence_cut:
@@ -211,6 +214,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "top_k": args.top_k,
         "cosine_threshold": args.cosine_threshold,
         "confidence_cut": args.confidence_cut,
+        "corpus_path": str(args.corpus) if args.corpus else None,
         **runtime.as_provenance(),
     }
     output.with_suffix(".meta.json").write_text(
@@ -228,9 +232,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     top_k=args.top_k,
                     cosine_threshold=args.cosine_threshold,
                     confidence_cut=args.confidence_cut,
+                    corpus_path=args.corpus,
                 )
                 row = to_row(trace)
                 row["gold_outcome"] = case["gold_outcome"]
+                row["gold_evidence_ids"] = case.get("gold_evidence_ids", [])
                 row["split"] = case.get("split", "unknown")
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
                 written += 1
@@ -248,6 +254,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--cosine-threshold", type=float, default=0.0)
     parser.add_argument("--confidence-cut", type=float, default=0.5)
+    parser.add_argument(
+        "--corpus",
+        default=None,
+        help="JSON list of passage records; defaults to data/corpus.json",
+    )
     args = parser.parse_args(argv)
     try:
         summary = run(args)
