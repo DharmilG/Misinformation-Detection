@@ -86,7 +86,11 @@ def _score_passage(passage_excerpt: str, caption_words: set[str]) -> tuple[str, 
     elif support_hits > contra_hits:
         return "supported", min(0.9, 0.4 + 0.1 * support_hits + 0.2 * overlap)
     else:
-        return "unresolved", 0.3 * overlap
+        # Neutral passages are cited on token overlap alone.  The previous
+        # `0.3 * overlap` could never reach the 0.35 citation threshold (max
+        # 0.3), so an exact-match passage was unrejectably discarded.  Confidence
+        # is now the overlap itself, which makes the threshold meaningful.
+        return "unresolved", min(0.9, overlap)
 
 
 # ── Public API ────────────────────────────────────────────────────────────

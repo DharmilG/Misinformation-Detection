@@ -26,6 +26,26 @@ def test_generation_module_exists():
 
 
 @case(
+    "rag_generation.neutral_overlap_reaches_threshold",
+    "F2",
+    "fast",
+    "doc/06 §34",
+    "A neutral passage with full claim-token overlap can reach the citation threshold.",
+)
+def test_neutral_overlap_reaches_threshold():
+    from src.rag.assessment import _score_passage
+
+    direction, confidence = _score_passage(
+        "a worker collects cotton buds in vidarbha",
+        {"worker", "collects", "cotton", "buds", "vidarbha"},
+    )
+    assert direction == "unresolved"
+    assert confidence >= 0.35, (
+        "the citation threshold is unreachable for a neutral exact-match passage"
+    )
+
+
+@case(
     "rag_generation.assessment_schema_fields",
     "F2",
     "fast",

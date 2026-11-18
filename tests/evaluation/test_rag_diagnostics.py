@@ -174,6 +174,42 @@ def test_generation_failure_attributed():
 
 
 @case(
+    "rag_diag.schema_mismatch_attributed",
+    "F10",
+    "fast",
+    "doc/07 §12.2",
+    "A passage-schema integration error is attributed to the interface, not to generation.",
+)
+def test_schema_mismatch_attributed():
+    row = {
+        "retrieval_outputs": {"synthetic_passages": False, "passage_count": 3},
+        "assessment_outputs": {
+            "status": "FAILED",
+            "error_detail": "'RetrievedPassage' object has no attribute 'passage'",
+        },
+    }
+    assert primary_failure(row) == "F10"
+
+
+@case(
+    "rag_diag.adapter_converts_flat_passages",
+    "F10",
+    "fast",
+    "doc/07 §12.2",
+    "Flat retrieval passages are adapted into the nested schema the assessor needs.",
+)
+def test_adapter_converts_flat_passages():
+    from types import SimpleNamespace
+    from src.evaluation.rag_diagnostics import _as_assessment_passages
+
+    flat = [SimpleNamespace(chunk_id="p1", text="an excerpt", score=0.8)]
+    result = _as_assessment_passages(tuple(flat))
+    assert hasattr(result[0], "passage")
+    assert result[0].passage.excerpt == "an excerpt"
+    assert result[0].relevance_score == 0.8
+
+
+@case(
     "rag_diag.placeholder_on_missing",
     "F10",
     "fast",

@@ -120,6 +120,48 @@ def trace_retrieval(
     )
 
 
+def _as_assessment_passages(passages: tuple[Any, ...]) -> tuple[Any, ...]:
+    """Adapt flat retrieval passages to the nested schema run_assessment expects.
+
+    ``retrieval_api.RetrievedPassage`` is flat (chunk_id/text/score), while
+    ``rag.assessment.run_assessment`` expects ``reporting.model.RetrievedPassage``
+    with ``.passage.excerpt``.  Without this adapter every assessment fails with
+    "'RetrievedPassage' object has no attribute 'passage'" - a silent integration
+    failure that looks like a missing generation backend.
+    """
+    try:
+        from ..reporting.model import PassageRecord, RetrievedPassage as ReportPassage
+    except ImportError:
+        from src.reporting.model import PassageRecord, RetrievedPassage as ReportPassage
+
+    adapted = []
+    for index, passage in enumerate(passages, start=1):
+        if hasattr(passage, "passage"):
+            adapted.append(passage)
+            continue
+        excerpt = str(getattr(passage, "text", ""))
+        record = PassageRecord(
+            passage_id=str(getattr(passage, "chunk_id", f"chunk_{index}")),
+            title=excerpt[:120],
+            source_name="local corpus",
+            source_type="dataset caption",
+            published_at=None,
+            excerpt=excerpt,
+            url=None,
+            rights_wording=None,
+            storage_scope=None,
+        )
+        adapted.append(
+            ReportPassage(
+                passage=record,
+                rank=index,
+                total_retrieved=len(passages),
+                relevance_score=float(getattr(passage, "score", 0.0)),
+            )
+        )
+    return tuple(adapted)
+
+
 def trace_assessment(
     case_id: str, condition: str, caption: str, passages: tuple[Any, ...]
 ) -> tuple[Any, StageRecord]:
@@ -128,11 +170,14 @@ def trace_assessment(
         condition,
         case_id,
         {"caption": caption, "passage_ids": [getattr(p, "chunk_id", None) for p in passages]},
-        lambda: run_assessment(caption, tuple(passages)),
+        lambda: run_assessment(caption, _as_assessment_passages(passages)),
         lambda r: {
             "status": getattr(r, "status", None),
             "outcome": getattr(r, "outcome", None),
             "reason_text": getattr(r, "reason_text", None),
+            # Non-OK statuses hide the real cause here.  Never drop these.
+            "reason": getattr(r, "reason", None),
+            "error_detail": getattr(r, "error_detail", None),
             "accepted_citation_ids": [
                 getattr(c, "source_id", None) for c in (getattr(r, "accepted_citations", ()) or ())
             ],

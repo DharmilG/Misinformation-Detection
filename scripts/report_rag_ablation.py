@@ -146,6 +146,11 @@ def primary_failure(row: dict[str, Any]) -> str:
     # assessment.  The evidence was found but never used - this is a
     # generation failure, not a retrieval or evidence-relevance failure.
     assessment = row.get("assessment_outputs") or {}
+    detail = str(assessment.get("error_detail") or "")
+    if "has no attribute" in detail or ("passage" in detail and "error" in detail.lower()):
+        # A schema/interface mismatch, not a model failure.  This was the real
+        # cause of every FAILED assessment before the adapter was added.
+        return "F10"
     if assessment.get("status") in ("FAILED", "UNAVAILABLE"):
         return "F6"
     if assessment.get("status") in ("SKIPPED", None):
