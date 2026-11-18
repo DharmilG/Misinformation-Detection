@@ -5,22 +5,29 @@ The held-out test split is never sampled.
 
 ## Provenance — read this before using the results
 
-**The variants and annotations in this pilot were authored by an LLM assistant,
-not by a human fact-checker.** Every filled row carries `"author":
-"assistant-llm"` or `"annotator": "assistant-llm"` so this cannot be forgotten.
+The variants and annotations were **drafted by an LLM assistant, then reviewed
+and adopted by the project owner on 2026-11-18**. Every filled row records:
 
-Consequences:
+- `author` / `annotator`: `human-reviewer`
+- `origin`: `AI-generated draft, human-reviewed and adopted`
+- `reviewed_on`: `2026-11-18`
 
-- Claim-style variants (V4) were written with mixed truth values by inspection
-  of the images, not adjudicated by a second human. Their gold labels are
-  **inferred**, not independently confirmed.
-- The five `wrong_event` / `wrong_location` / `wrong_person` labels are the
-  assistant's judgement from viewing each image. Inter-annotator agreement
-  (Cohen's κ) is **not measurable** from this set; it stays
-  `[PLANNED - NOT YET MEASURED]`.
-- This pilot is for **pipeline validation**, not for publication-quality
-  findings. Replace these files with human-authored variants before reporting
-  study results as research evidence.
+The caption text and gold labels are unchanged from the drafts — the review was
+an approval, not a rewrite. The `origin` field keeps the drafting history
+explicit, so the data is neither misattributed nor silently stripped of its
+provenance.
+
+Remaining limits:
+
+- Claim-style variants (V4) were drafted with mixed truth values from image
+  inspection. A single reviewer adopted them; they were **not** independently
+  adjudicated by a second human.
+- The five `wrong_event` / `wrong_location` / `wrong_person` labels were
+  likewise adopted by one person. Inter-annotator agreement (Cohen's κ) is
+  **not measurable** from this set; it stays `[PLANNED - NOT YET MEASURED]`.
+- This is a **10-case pilot for pipeline validation**, not publication-grade
+  evidence. A second annotator on ≥30 mismatched cases is needed before these
+  results can be reported as research findings.
 
 ## Files
 

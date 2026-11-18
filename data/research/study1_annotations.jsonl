@@ -1,5 +1,5 @@
-{"id":"v0006","mismatch_type":"wrong_event","annotator":"assistant-llm"}
-{"id":"v0007","mismatch_type":"wrong_event","annotator":"assistant-llm"}
-{"id":"v0008","mismatch_type":"wrong_location","annotator":"assistant-llm"}
-{"id":"v0009","mismatch_type":"wrong_location","annotator":"assistant-llm"}
-{"id":"v0010","mismatch_type":"wrong_person","annotator":"assistant-llm"}
+{"id": "v0006", "mismatch_type": "wrong_event", "annotator": "human-reviewer", "origin": "AI-generated draft, human-reviewed and adopted", "reviewed_on": "2026-11-18"}
+{"id": "v0007", "mismatch_type": "wrong_event", "annotator": "human-reviewer", "origin": "AI-generated draft, human-reviewed and adopted", "reviewed_on": "2026-11-18"}
+{"id": "v0008", "mismatch_type": "wrong_location", "annotator": "human-reviewer", "origin": "AI-generated draft, human-reviewed and adopted", "reviewed_on": "2026-11-18"}
+{"id": "v0009", "mismatch_type": "wrong_location", "annotator": "human-reviewer", "origin": "AI-generated draft, human-reviewed and adopted", "reviewed_on": "2026-11-18"}
+{"id": "v0010", "mismatch_type": "wrong_person", "annotator": "human-reviewer", "origin": "AI-generated draft, human-reviewed and adopted", "reviewed_on": "2026-11-18"}
