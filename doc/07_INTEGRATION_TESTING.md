@@ -147,6 +147,7 @@ The boundary holds in both directions. `pytest.ini` sets `testpaths = tests`, so
 | `tests/input_pipeline/` | `src/input_pipeline/` | Document 04 | The validation, the preprocessing, the request schema, the status model |
 | `tests/retrieval/` | `src/retrieval/` | Document 06 §47 | The evidence corpus, ingestion, chunking, the index, lexical and dense retrieval, fusion, the filters, dedup |
 | `tests/rag/` | `src/rag/` | Document 06 §48 | The prompt, the assembly, the validation, the eligibility rule, the outcome |
+| `tests/evaluation/` | `src/evaluation/` | Document 06 §42, Document 07 §12.2 | The research runtime, the failure audit, and the RAG stage diagnostics |
 | `tests/reporting/` | `src/reporting/` | Document 05 | The report model, the comparison, the export |
 | `tests/spec/` | no component | Document 07 | The documentation, and the suite's own invariants |
 
@@ -585,6 +586,9 @@ The full report, with the clause and the requirement for every case, is `reports
 | This traceability table | Document 07 §12 | `harness.traceability_sections_resolve`, `harness.case_ids_unique` | fast | IMPLEMENTED |
 | The documentation set | Document 00 §11, Document 00 §11.1 | `docs.every_document_present`, `docs.documentation_directory_is_exact`, `docs.overview_unchanged`, `docs.no_team_names_in_filenames` | fast | IMPLEMENTED |
 | The pinned requirements | Document 00 §11.1, Document 01 §4.2 | `docs.requirements_pinned` | fast | DECLARED GAP |
+| The failure-audit input rules | Document 07 §12.2 | `audit.mechanical_variants_labels`, `audit.rejects_missing_gold`, `audit.rejects_authored_mechanical`, `audit.accepts_bom_manifest` | fast | IMPLEMENTED |
+| The failure-audit reporting rules | Document 07 §12.2 | `audit.paired_delta`, `audit.bootstrap_ci`, `audit.group_accuracy`, `audit.placeholder_on_missing`, `audit.accuracy_uses_gold_not_correct_flag` | fast | IMPLEMENTED |
+| The RAG stage diagnostics | Document 06 §42, Document 07 §12.2 | `rag_diag.stage_records_complete`, `rag_diag.non_ok_status_kept`, `rag_diag.synthetic_passages_detected`, `rag_diag.same_claims_enforced`, `rag_diag.recall_at_k`, `rag_diag.outcome_distribution_zero_classes`, `rag_diag.primary_failure_precedence`, `rag_diag.placeholder_on_missing` | fast | IMPLEMENTED |
 
 ### 12.3 The contracts not yet covered
 

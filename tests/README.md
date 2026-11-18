@@ -18,6 +18,7 @@ mirrors the module it tests.
 | `input_pipeline/` | `src/input_pipeline/` — validation, preprocessing, the request schema | 04 | populated |
 | `retrieval/` | `src/retrieval/` — the evidence corpus, ingestion, chunking, retrieval | 06 §47 | populated |
 | `rag/` | `src/rag/` — the prompt, the assessment, the eligibility rule, the outcome | 06 §48 | populated |
+| `evaluation/` | `src/evaluation/` — the research runtime, the failure audit, the RAG stage diagnostics | 06 §42, 07 §12.2 | populated |
 | `reporting/` | `src/reporting/` — the report model, the comparison, the export | 05 | populated |
 | `spec/` | no component — the documentation and the suite's own invariants | 07 | populated |
 
@@ -27,10 +28,10 @@ and `run.py` are the harness itself and stay flat at the top.
 
 ## Status
 
-**Complete.** All 7 component folders (`clip_model/`, `datasets/`, `input_pipeline/`,
-`retrieval/`, `rag/`, `reporting/`, and `spec/`) are fully populated with 311
-registered contract test cases across 54 test modules. Document 07 §2 is the
-authoritative statement of the layout.
+**Complete.** All 8 component folders (`clip_model/`, `datasets/`, `input_pipeline/`,
+`retrieval/`, `rag/`, `evaluation/`, `reporting/`, and `spec/`) are fully populated
+with 379 registered contract test cases across 60 test modules. Document 07 §2 is
+the authoritative statement of the layout.
 
 ## Running the suite
 

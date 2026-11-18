@@ -1737,6 +1737,8 @@ The test tier taxonomy, the marker definitions, the environment requirements, th
 
 The tests listed in the remaining subsections of this section are this component's own tests, executed under those tiers. They are **unit and component tests**: they verify this component's contracts, not the boundaries between components, which are tested in `07_INTEGRATION_TESTING.md` §5.
 
+The RAG ablation study adds per-stage instrumentation in `src/evaluation/rag_diagnostics.py`. It wraps the retrieval, assessment, eligibility, injection, and outcome stages and records what each receives and returns, so a failure can be attributed to a stage rather than inferred from the final label. The instrumentation is registered in `07_INTEGRATION_TESTING.md` §12.2 and tested by `tests/evaluation/test_rag_diagnostics.py`. It does not modify this component's modules.
+
 ```bash
 # This component's fast suite
 pytest -m "not slow and not eval and not benchmark and not e2e"
