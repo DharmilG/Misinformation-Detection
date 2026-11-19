@@ -65,10 +65,10 @@ For the five genuinely matching pairs, the accident gave the right answer — th
 
 | Measure | Value |
 |---|---|
-| Registered case ids | **404** |
-| Result | **403 passed, 1 skipped, 0 failed** |
+| Registered case ids | **411** |
+| Result | **410 passed, 1 skipped, 0 failed** |
 | Skipped case | `parity.skip_when_reference_absent` (reference features absent — expected) |
-| Test modules | 63, mirrored against `src/` |
+| Test modules | 65, mirrored against `src/` |
 | doc/00 | byte-identical (SHA-256 verified through the normalised hash) |
 
 ### Research additions
