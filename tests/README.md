@@ -30,7 +30,7 @@ and `run.py` are the harness itself and stay flat at the top.
 
 **Complete.** All 8 component folders (`clip_model/`, `datasets/`, `input_pipeline/`,
 `retrieval/`, `rag/`, `evaluation/`, `reporting/`, and `spec/`) are fully populated
-with 411 registered contract test cases across 65 test modules. Document 07 §2 is
+with 414 registered contract test cases across 66 test modules. Document 07 §2 is
 the authoritative statement of the layout.
 
 ## Running the suite

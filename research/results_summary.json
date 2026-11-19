@@ -38,8 +38,8 @@
     "rows": {"train": 25000, "val": 7024, "test": 7264}
   },
   "conformance": {
-    "registered_cases": 411,
-    "passed": 410,
+    "registered_cases": 414,
+    "passed": 413,
     "skipped": 1,
     "failed": 0,
     "note": "the skip is parity.skip_when_reference_absent and is asserted"

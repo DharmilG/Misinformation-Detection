@@ -593,6 +593,7 @@ The full report, with the clause and the requirement for every case, is `reports
 | The retriever–assessor boundary | Document 06 §42, Document 07 §12.2 | `integration.real_passage_can_be_assessed` | fast | IMPLEMENTED |
 | The swappable claim assessor | Document 07 §12.2 | `assessor.factory_selects_impl`, `assessor.local_failure_is_explicit`, `assessor.unknown_citations_dropped` | fast | IMPLEMENTED |
 | The research-results UI surface | Document 05 §3, Document 07 §12.2 | `ui.research_page_available`, `ui.research_summary_valid`, `ui.plain_language_conclusion` | fast | IMPLEMENTED |
+| The generated project presentation | Document 05 §3, Document 07 §12.2 | `deck.slides_present`, `deck.no_stale_metrics`, `deck.transitions_applied` | fast | IMPLEMENTED |
 | The research templates | Document 07 §12.2 | `template.no_test_split_rows`, `template.variants_prefilled`, `template.reproducible_seed` | fast | IMPLEMENTED |
 | The selective-prediction metrics | Document 07 §12.2 | `selective.risk_coverage_monotone`, `selective.aurc_bounds`, `selective.selective_accuracy_at_coverage`, `selective.overconfidence_rate`, `selective.stratified_by_failure_mode`, `selective.v0_extraction`, `selective.placeholder_on_missing` | fast | IMPLEMENTED |
 | The human-study instrument | Document 07 §12.2 | `study.counterbalanced_order`, `study.schedule_is_one_per_condition`, `study.rejects_remote_bind`, `study.records_anonymous_answers`, `study.metrics_by_condition`, `study.placeholder_on_missing` | fast | IMPLEMENTED |
