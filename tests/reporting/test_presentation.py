@@ -34,11 +34,15 @@ def _all_text(prs):
 )
 def test_slides_present():
     prs = _deck()
-    assert len(prs.slides) == 16
+    assert len(prs.slides) == 20
     text = _all_text(prs)
     for expected in (
         "SEMESTER 07",
         "BATCH ICT",
+        "What is CLIP?",
+        "How CLIP sees the world",
+        "Why only the embeddings?",
+        "What is the D-C head?",
         "Dhaval Lakum",
         "Dharmil Gajjar",
         "Dhruv Chauhan",
