@@ -22,6 +22,29 @@ All three were found, fixed, and pinned with conformance cases. A fourth limitat
 
 ---
 
+## In plain words
+
+**Same score, different answers.**
+
+Both methods scored 50%. But they did not give the same answers — RAG changed every single one.
+The plain classifier called every pair MISMATCHED. With RAG, every pair became MATCHED.
+The test set has 5 genuinely matching and 5 genuinely mismatching pairs, so flipping every answer keeps the score at exactly 50%. That is a coincidence, not a tie.
+The AI judge called every claim SUPPORTED, even the false ones. So it was not really judging the evidence. We cannot say RAG helped or hurt yet.
+
+**Why did RAG flip every answer?**
+
+1. The evidence corpus is a bag of real captions. Each caption really belongs to some photo.
+2. A false caption paired with the wrong photo still exists in that bag — it belongs to a different photo.
+3. RAG searched by the caption's own words, so it found the caption itself at rank 1.
+4. The AI judge only saw text, never the photo. "These words appear in the evidence" looked like "these words are supported".
+5. It answered SUPPORTED for all ten claims, and SUPPORTED was converted into MATCHED. That is why all ten answers flipped.
+
+Concrete example: on the five false pairs, the passage the judge cited was the pair's own caption id (`77605`, `1566593`, `1039824`, `311815`, `1575962`), not the true caption for that image — the true caption for v0006 was `107208`.
+
+**Why were half the answers still wrong?**
+
+For the five genuinely matching pairs, the accident gave the right answer — the caption really does belong to that photo. For the five false pairs it gave the wrong answer — that caption belongs to a different photo. The plain classifier got the false pairs right; RAG got the true pairs right. Each method got exactly one half right, so the 50% is a coincidence of a balanced set, not a tie.
+
 ## 2. What the system does and what was measured
 
 ### Classifier (trained, held-out result)

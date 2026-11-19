@@ -1532,7 +1532,6 @@ elif page == C.H_PERFORMANCE:
     # Load metrics
     _metrics_path = pathlib.Path("dataset/models/checkpoint/metrics.json")
     _audit_path = pathlib.Path("reports/dataset_audit.json")
-    _rag_eval_path = pathlib.Path("reports/rag_non_rag_eval.json")
 
     if _metrics_path.is_file():
         _metrics = json.loads(_metrics_path.read_text(encoding="utf-8"))
@@ -1611,29 +1610,6 @@ elif page == C.H_PERFORMANCE:
         verdict = _audit.get("verdict", "unknown")
         st.write(f"Verdict: **{verdict.upper()}** | Checks passed: {sum(1 for c in _audit['checks'] if c['status']=='pass')}/{len(_audit['checks'])}")
 
-    # Legacy evaluator sanity check - not a research result.
-    if _rag_eval_path.is_file():
-        st.markdown("---")
-        st.markdown("#### Evaluator Sanity Check (fixture)")
-        st.caption(
-            "These numbers come from a 50-row fixture check of the evaluation script. "
-            "They are NOT a research result. See the Research Results page for the "
-            "pre-registered comparison."
-        )
-        _rag_eval = json.loads(_rag_eval_path.read_text(encoding="utf-8"))
-        _non_rag = _rag_eval.get("non_rag", {})
-        _rag = _rag_eval.get("rag", {})
-        _paired = _rag_eval.get("paired", {})
-        col_r1, col_r2, col_r3 = st.columns(3)
-        with col_r1:
-            st.metric("Non-RAG Accuracy", f"{_non_rag.get('accuracy', 0)*100:.1f}%")
-        with col_r2:
-            st.metric("RAG Accuracy", f"{_rag.get('accuracy', 0)*100:.1f}%")
-        with col_r3:
-            st.metric("\u0394 (RAG - Non-RAG)", f"{_paired.get('rag_minus_non_rag_accuracy', 0)*100:.1f}%")
-        st.write(f"Samples evaluated: {_non_rag.get('rows', '—')}")
-        st.write(f"Same prediction rate: {_paired.get('same_prediction_rate', 0)*100:.1f}%")
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # RESEARCH RESULTS — pre-registered RAG comparison and study summary
@@ -1658,6 +1634,34 @@ elif page == C.H_RESEARCH:
         )
     else:
         _summary = json.loads(_summary_path.read_text(encoding="utf-8"))
+
+        _plain = _summary.get("plain_language", {})
+        if _plain:
+            st.markdown("#### In plain words")
+            st.markdown(
+                f"<div style='background:#FEF3C7; padding:16px; border-radius:8px; "
+                f"margin-bottom:10px;'><div style='font-size:1.15rem; font-weight:700; "
+                f"margin-bottom:8px;'>{escape_display(str(_plain.get('headline', '')))}</div>"
+                + "".join(
+                    f"<div style='margin-bottom:6px;'>• {escape_display(str(line))}</div>"
+                    for line in _plain.get("conclusion", [])
+                )
+                + "</div>",
+                unsafe_allow_html=True,
+            )
+
+            _why = _plain.get("why_flipped", {})
+            if _why:
+                with st.expander(escape_display(str(_why.get("question", "Why did it flip?")))):
+                    for step in _why.get("steps", []):
+                        st.write(f"- {escape_display(str(step))}")
+                    st.info(escape_display(str(_why.get("concrete_example", ""))))
+
+            _wrong = _plain.get("why_half_wrong", {})
+            if _wrong:
+                with st.expander(escape_display(str(_wrong.get("question", "Why were half wrong?")))):
+                    st.write(escape_display(str(_wrong.get("answer", ""))))
+
         _rag = _summary.get("rag", {})
         _clf = _summary.get("classifier", {})
         _conf = _summary.get("conformance", {})

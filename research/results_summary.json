@@ -3,6 +3,30 @@
   "protocol": "research/protocol.md",
   "generated_for": "research results display in the Streamlit UI",
   "status": "definitive RAG comparison run under a frozen protocol; result inconclusive",
+  "plain_language": {
+    "headline": "Same score, different answers",
+    "conclusion": [
+      "Both methods scored 50%. But they did not give the same answers — RAG changed every single one.",
+      "The plain classifier called every pair MISMATCHED. With RAG, every pair became MATCHED.",
+      "The test set has 5 genuinely matching and 5 genuinely mismatching pairs, so flipping every answer keeps the score at exactly 50%. That is a coincidence, not a tie.",
+      "The AI judge called every claim SUPPORTED, even the false ones. So it was not really judging the evidence. We cannot say RAG helped or hurt yet."
+    ],
+    "why_flipped": {
+      "question": "Why did RAG flip every answer?",
+      "steps": [
+        "The evidence corpus is a bag of real captions. Each caption really belongs to some photo.",
+        "A false caption paired with the wrong photo still exists in that bag — it belongs to a different photo.",
+        "RAG searched by the caption's own words, so it found the caption itself at rank 1.",
+        "The AI judge only saw text, never the photo. 'These words appear in the evidence' looked like 'these words are supported'.",
+        "It answered SUPPORTED for all ten claims, and SUPPORTED was converted into MATCHED. That is why all ten answers flipped."
+      ],
+      "concrete_example": "On the five false pairs, the passage the judge cited was the pair's own caption id (77605, 1566593, 1039824, 311815, 1575962), not the true caption for that image (for example, the true caption for v0006 was 107208)."
+    },
+    "why_half_wrong": {
+      "question": "Why were half the answers still wrong?",
+      "answer": "For the five genuinely matching pairs, the accident gave the right answer — the caption really does belong to that photo. For the five false pairs it gave the wrong answer — that caption belongs to a different photo. The plain classifier got the false pairs right; RAG got the true pairs right. Each method got exactly one half right, so the 50% is a coincidence of a balanced set, not a tie."
+    }
+  },
   "classifier": {
     "candidate": "D-C",
     "test_accuracy": 0.6920429515418502,
