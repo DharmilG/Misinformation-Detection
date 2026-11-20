@@ -34,11 +34,17 @@ def _all_text(prs):
 )
 def test_slides_present():
     prs = _deck()
-    assert len(prs.slides) == 20
+    assert len(prs.slides) == 24
     text = _all_text(prs)
     for expected in (
         "SEMESTER 07",
         "BATCH ICT",
+        "Real pairs. Plausible fakes.",
+        "A 50:50 test by design",
+        "Sanitize, canonicalize, cache",
+        "Why candidate D-C won",
+        "54.2%",
+        "66.1%",
         "What is CLIP?",
         "How CLIP sees the world",
         "Why only the embeddings?",
@@ -67,7 +73,7 @@ def test_no_stale_metrics():
     text = _all_text(_deck())
     for stale in ("12.00%", "12%", "50 claims", "−38%"):
         assert stale not in text, f"stale figure in deck: {stale}"
-    for current in ("69.20%", "71.43%", "INCONCLUSIVE", "411"):
+    for current in ("69.20%", "71.43%", "INCONCLUSIVE", "414 conformance"):
         assert current in text, f"current figure missing from deck: {current}"
 
 
